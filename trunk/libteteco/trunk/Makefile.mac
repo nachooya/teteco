@@ -1,0 +1,23 @@
+CFLAGS=-Wall -c -g -fPIC -D__MACOSX__
+CC=gcc
+INCLUDE=-I../libs/speex-1.2rc1/include/ -I../libs/portaudio/include/ 
+LDFLAGS=-L../libs/portaudio/lib/.libs/ -L../libs/speex-1.2rc1/libspeex/.libs/ -lportaudio -lspeexdsp -lspeex  -dynamiclib -current_version 1.0
+
+SOURCES=net.c audio.c enc_speex.c circular_buffer.c util.c speex_jitter_buffer.c protocol.c chat.c log.c teteco.c receive_thread.c
+
+OBJECTS=$(SOURCES:.c=.o)
+LIBRARY=libteteco.dylib
+
+all: $(SOURCES) $(LIBRARY)
+
+$(LIBRARY): $(OBJECTS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@
+
+
+clean:
+	rm -f *.dylib *.o
+
+

@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file>teteco.css</file>
+    <file>teteco.png</file>
+  </qresource>
+</RCC>

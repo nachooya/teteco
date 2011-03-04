@@ -1,0 +1,29 @@
+CFLAGS=-Wall -c -g -D__WINDOWS__ -DBUILDING_TETECO_DLL
+
+INCLUDE=-I../libs/win/portaudio/include -I../libs/win/speex-1.2rc1/include
+LDFLAGS=-shared -L../libs/win/portaudio/lib/.libs -L ../libs/win/speex-1.2rc1/libspeex/.libs/ -lws2_32 -lpthread -lportaudio -lspeex -lspeexdsp
+CC=gcc
+
+SOURCES=net.c audio.c enc_speex.c circular_buffer.c util.c speex_jitter_buffer.c protocol.c chat.c log.c teteco.c receive_thread.c sys/stdio.c
+
+OBJECTS=$(SOURCES:.c=.o)
+LIBRARY=teteco.dll
+
+all: $(SOURCES) $(LIBRARY)
+
+$(LIBRARY): $(OBJECTS)
+	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@
+
+
+clean:
+	rm -f *.so* *.o
+
+
+debian:
+	./debianize.sh
+
+
+.PHONY: debian

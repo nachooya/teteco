@@ -1,0 +1,9 @@
+Compilation
+===========
+
+* Linux
+ 
+qmake teteco.linux.pro
+make
+
+
