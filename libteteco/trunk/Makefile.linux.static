@@ -1,0 +1,44 @@
+CFLAGS=-Wall -c -g -D__LINUX__
+INCLUDE=-I../libs/libevent-2.0.10-stable/include/
+LDFLAGS=-lpthread -lm -lasound
+LIBS_STATIC=../libs/libevent-2.0.10-stable/.libs/libevent.a \
+            ../libs/portaudio/lib/.libs/libportaudio.a \
+            ../libs/speex-1.2rc1/libspeex/.libs/libspeex.a \
+            ../libs/speex-1.2rc1/libspeex/.libs/libspeexdsp.a
+CC=gcc
+
+SOURCES=src/teteco_net.c \
+        src/audio.c \
+        src/enc_speex.c \
+        src/circular_buffer.c \
+        src/util.c \
+        src/speex_jitter_buffer.c \
+        src/protocol.c \
+        src/chat.c \
+        src/log.c \
+        src/teteco.c
+
+OBJECTS=$(SOURCES:.c=.o)
+LIBRARY_STATIC=src/libteteco.a
+
+all: $(SOURCES) $(LIBRARY_STATIC)
+	
+
+
+$(LIBRARY_STATIC): $(OBJECTS)
+
+	for i in $(LIBS_STATIC); do \
+    	ar x $$i ; \
+	done
+
+
+#	ar rcs libfinal.a *.o
+	ar -cvq $(LIBRARY_STATIC) $(OBJECTS) *.o
+	rm *.o
+
+.c.o:
+	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@
+
+
+clean:
+	rm -f  src/*.o src/*.a *.o
