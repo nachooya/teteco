@@ -5,7 +5,9 @@
 StatisticsWindow::StatisticsWindow (QDialog *parent) :QDialog (parent) {
 
     setupUi (this);
+	
+	Graph = new DataPlot (this);
 
-    verticalLayout->insertWidget (0, &Graph);
+    verticalLayout->insertWidget (0, Graph);
 
 }

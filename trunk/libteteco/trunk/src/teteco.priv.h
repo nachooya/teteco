@@ -28,6 +28,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdio.h>
+
+#ifdef __WINDOWS__
+
+#define _WIN32_WINNT 0x0501
+#include <ws2tcpip.h>
+#endif
 
 #include <event2/event.h>
 

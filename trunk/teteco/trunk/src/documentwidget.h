@@ -40,10 +40,7 @@
 #define DOCUMENTWIDGET_H
 
 #include <QLabel>
-#include <QRectF>
-#include <poppler/qt4/poppler-qt4.h>
-
-class QRubberBand;
+#include <poppler-qt4.h>
 
 class DocumentWidget : public QLabel
 {
@@ -57,8 +54,6 @@ public:
     qreal scale() const;
 
 public slots:
-    QRectF searchBackwards(const QString &text);
-    QRectF searchForwards(const QString &text);
     bool setDocument(const QString &filePath);
     void setPage(int page = -1);
     void nextPage ();
@@ -66,25 +61,15 @@ public slots:
     void setScale(qreal scale);
     void setScale(QString scale);
 
-protected:
-    void mousePressEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void mouseReleaseEvent(QMouseEvent *event);
-
 signals:
     void pageChanged(int currentPage);
     void pageChanged(QString currentPage);
-    void textSelected(const QString &text);
 
 private:
-    void selectedText(const QRectF &rect);
     void showPage(int page = -1);
 
     Poppler::Document *doc;
     int currentPage;
-    QPoint dragPosition;
-    QRubberBand *rubberBand;
-    QRectF searchLocation;
     qreal scaleFactor;
 };
 

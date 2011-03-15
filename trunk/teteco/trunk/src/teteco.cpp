@@ -1,3 +1,4 @@
+#include <time.h>
 #include "documentwidget.h"
 #include "teteco.h"
 
@@ -43,6 +44,12 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
     setupUi (this);
 
     ViewerVisible (false);
+	
+	configurationWindow = new ConfigurationWindow ();
+	statisticsWindow    = new StatisticsWindow ();
+	tranferring         = new QLabel (this);
+	labelStatus         = new QLabel (this);
+	progressBar_Audio   = new QProgressBar (this);
 
     buttonSendFile  = new QPushButton  (QString ("Send File"),  toolBar);
     buttonServer    = new QPushButton  (QString ("Server Mode"),  toolBar);
@@ -60,44 +67,46 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
     QSizePolicy sizePolicy1(QSizePolicy::Fixed, QSizePolicy::Expanding);
     sizePolicy1.setHorizontalStretch(0);
     sizePolicy1.setVerticalStretch(0);
-    sizePolicy1.setHeightForWidth(progressBar_Audio.sizePolicy().hasHeightForWidth());
+    sizePolicy1.setHeightForWidth(progressBar_Audio->sizePolicy().hasHeightForWidth());
 
-    progressBar_Audio.setEnabled(false);
-    progressBar_Audio.setSizePolicy(sizePolicy1);
-    progressBar_Audio.setMinimumSize(QSize(100, 21));
-    progressBar_Audio.setMaximumSize(QSize(100, 21));
-    progressBar_Audio.setMinimum(0);
-    progressBar_Audio.setMaximum(100);
-    progressBar_Audio.setValue(0);
-    progressBar_Audio.setOrientation(Qt::Horizontal);
-    progressBar_Audio.setInvertedAppearance(false);
-    progressBar_Audio.setFormat(QApplication::translate("MainWindow", "AUDIO METER", 0, QApplication::UnicodeUTF8));
+	
+	setStyleSheet("QProgressBar {text-align: center; border: 1px solid grey;border-radius: 5px}"); 
+    progressBar_Audio->setEnabled(false);
+    progressBar_Audio->setSizePolicy(sizePolicy1);
+    progressBar_Audio->setMinimumSize(QSize(100, 21));
+    progressBar_Audio->setMaximumSize(QSize(100, 21));
+    progressBar_Audio->setMinimum(0);
+    progressBar_Audio->setMaximum(100);
+    progressBar_Audio->setValue(0);
+    progressBar_Audio->setOrientation(Qt::Horizontal);
+    progressBar_Audio->setInvertedAppearance(false);
+    progressBar_Audio->setFormat(QApplication::translate("MainWindow", "AUDIO METER", 0, QApplication::UnicodeUTF8));
 
-    progressBar_Net.setEnabled(false);
-    progressBar_Net.setSizePolicy(sizePolicy1);
-    progressBar_Net.setMinimumSize(QSize(100, 21));
-    progressBar_Net.setMaximumSize(QSize(100, 21));
-    progressBar_Net.setMinimum(0);
-    progressBar_Net.setMaximum(100);
-    progressBar_Net.setValue(0);
-    progressBar_Net.setOrientation(Qt::Horizontal);
-    progressBar_Net.setInvertedAppearance(false);
-    progressBar_Net.setFormat(QApplication::translate("MainWindow", "NET    %p%", 0, QApplication::UnicodeUTF8));
+    // progressBar_Net.setEnabled(false);
+    // progressBar_Net.setSizePolicy(sizePolicy1);
+    // progressBar_Net.setMinimumSize(QSize(100, 21));
+    // progressBar_Net.setMaximumSize(QSize(100, 21));
+    // progressBar_Net.setMinimum(0);
+    // progressBar_Net.setMaximum(100);
+    // progressBar_Net.setValue(0);
+    // progressBar_Net.setOrientation(Qt::Horizontal);
+    // progressBar_Net.setInvertedAppearance(false);
+    // progressBar_Net.setFormat(QApplication::translate("MainWindow", "NET    %p%", 0, QApplication::UnicodeUTF8));
 
-    label_Status.setText ("<font color='red'>NO CONNECTED</font>");
+    labelStatus->setText ("<font color='red'>NO CONNECTED</font>");
 
-    QPalette pal2 = progressBar_Audio.palette();
+    QPalette pal2 = progressBar_Audio->palette();
     pal2.setColor(QPalette::Highlight, QColor("green"));
-    progressBar_Audio.setPalette(pal2);
+    progressBar_Audio->setPalette(pal2);
 
-    QPalette pal3 = progressBar_Net.palette();
-    pal3.setColor(QPalette::Highlight, QColor("blue"));
-    progressBar_Net.setPalette(pal3);
+    //QPalette pal3 = progressBar_Net.palette();
+    //pal3.setColor(QPalette::Highlight, QColor("blue"));
+    //progressBar_Net.setPalette(pal3);
 
 
 
-    statusBar()->addWidget (&label_Status, 1);
-    statusBar()->addWidget (&progressBar_Audio, 0);
+    statusBar()->addWidget (labelStatus, 1);
+    statusBar()->addWidget (progressBar_Audio, 0);
     //statusBar()->addWidget (&progressBar_Net, 0);
 
     textEdit_Log->setVisible (false);
@@ -123,9 +132,9 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
     }
 
 
-    QObject::connect(actionPreferences,     SIGNAL(triggered()),     &configurationWindow, SLOT(show()));
+    QObject::connect(actionPreferences,     SIGNAL(triggered()),     configurationWindow,  SLOT(show()));
     QObject::connect(actionExit,            SIGNAL(triggered()),     this,                 SLOT(close()));
-    QObject::connect(actionStatistics,      SIGNAL(triggered()),     &statisticsWindow,    SLOT(show()));
+    QObject::connect(actionStatistics,      SIGNAL(triggered()),     statisticsWindow,     SLOT(show()));
     QObject::connect(pushButton_Connect,    SIGNAL(released()),      this,                 SLOT(Connect()));
     QObject::connect(actionLog,             SIGNAL(toggled(bool)),   textEdit_Log,         SLOT(setVisible(bool)));
     QObject::connect(actionViewer,          SIGNAL(toggled(bool)),   this,                 SLOT(ViewerVisible(bool)));
@@ -170,32 +179,32 @@ void Interface::UpdateStatistics (void) {
     uint32_t packets_expected = teteco_get_packets_expected (teteco);
     uint32_t packets_received = teteco_get_packets_received (teteco);
 
-    statisticsWindow.Graph.addValues (current_bytes_in - last_bytes_in, current_bytes_out - last_bytes_out, (packets_received-last_received) - (packets_expected-last_expected));
+    statisticsWindow->Graph->addValues (current_bytes_in - last_bytes_in, current_bytes_out - last_bytes_out, (packets_received-last_received) - (packets_expected-last_expected));
 
     time_t      uptime = time(NULL) - teteco_get_time_start (teteco);
     uint32_t    BIn    = teteco_get_total_bytes_in (teteco);
     uint32_t    BOut   = teteco_get_total_bytes_out (teteco);
 
-    statisticsWindow.lineEdit_RunningTime->setText (QString().setNum(uptime));
+    statisticsWindow->lineEdit_RunningTime->setText (QString().setNum(uptime));
 
-    statisticsWindow.lineEdit_TotalBytesIn ->setText (QString().setNum(BIn));
-    statisticsWindow.lineEdit_TotalBytesOut->setText (QString().setNum(BOut));
+    statisticsWindow->lineEdit_TotalBytesIn ->setText (QString().setNum(BIn));
+    statisticsWindow->lineEdit_TotalBytesOut->setText (QString().setNum(BOut));
 
-    statisticsWindow.lineEdit_AverageRateIn ->setText (QString().setNum(BIn/uptime));
-    statisticsWindow.lineEdit_AverageRateOut->setText (QString().setNum(BOut/uptime));
+    statisticsWindow->lineEdit_AverageRateIn ->setText (QString().setNum(BIn/uptime));
+    statisticsWindow->lineEdit_AverageRateOut->setText (QString().setNum(BOut/uptime));
 
     if (packets_received != 0)
-    statisticsWindow.lineEdit_AveragePacketInSize ->setText (QString().setNum(BIn/(packets_received)));
-    statisticsWindow.lineEdit_AveragePacketOutSize->setText ("TODO");
+    statisticsWindow->lineEdit_AveragePacketInSize ->setText (QString().setNum(BIn/(packets_received)));
+    statisticsWindow->lineEdit_AveragePacketOutSize->setText ("TODO");
 
-    statisticsWindow.lineEdit_TotalPacketsIn ->setText (QString().setNum(packets_received));
-    statisticsWindow.lineEdit_TotalPacketsOut->setText ("TODO");
+    statisticsWindow->lineEdit_TotalPacketsIn ->setText (QString().setNum(packets_received));
+    statisticsWindow->lineEdit_TotalPacketsOut->setText ("TODO");
 
-    statisticsWindow.lineEdit_TotalPacketsInLost ->setText (QString().setNum(packets_received-packets_expected));
-    statisticsWindow.lineEdit_TotalPacketsOutLost->setText ("TODO");
+    statisticsWindow->lineEdit_TotalPacketsInLost ->setText (QString().setNum(packets_received-packets_expected));
+    statisticsWindow->lineEdit_TotalPacketsOutLost->setText ("TODO");
 
-    statisticsWindow.lineEdit_PacketsInLostPercent ->setText (QString().setNum ( (float) ((float)packets_expected * 100.0 / (float)packets_received)));
-    statisticsWindow.lineEdit_PacketsOutLostPercent->setText ("TODO");
+    statisticsWindow->lineEdit_PacketsInLostPercent ->setText (QString().setNum ( (float) ((float)packets_expected * 100.0 / (float)packets_received)));
+    statisticsWindow->lineEdit_PacketsOutLostPercent->setText ("TODO");
 
 //////////////////////////////////////////////
 
@@ -211,15 +220,15 @@ void Interface::AudioLevel (void) {
 
     float Db = teteco_get_current_db (teteco);
 
-    if (progressBar_Audio.maximum() < Db) {
-        progressBar_Audio.setMaximum (Db);
+    if (progressBar_Audio->maximum() < Db) {
+        progressBar_Audio->setMaximum (Db);
     }
     else {
-        if (progressBar_Audio.minimum() > Db) {
-            progressBar_Audio.setMinimum (Db);
+        if (progressBar_Audio->minimum() > Db) {
+            progressBar_Audio->setMinimum (Db);
         }
     }
-    progressBar_Audio.setValue (Db);
+    progressBar_Audio->setValue (Db);
 
 }
 
@@ -236,7 +245,7 @@ void Interface::NetLevel (void) {
     last_expected = packets_expected;
     last_received = packets_received;
 
-    progressBar_Net.setValue (percent);
+    //progressBar_Net.setValue (percent);
 
 }
 
@@ -272,12 +281,12 @@ void Interface::Connect (void) {
                                      0,
                                      remote.port(200),
                                      qPrintable(remote.host()),
-                                     configurationWindow.comboBox_Devices_IN->itemData(configurationWindow.comboBox_Devices_IN->currentIndex()).toInt(),
-                                     configurationWindow.comboBox_Devices_OUT->itemData(configurationWindow.comboBox_Devices_OUT->currentIndex()).toInt(),
+                                     configurationWindow->comboBox_Devices_IN->itemData(configurationWindow->comboBox_Devices_IN->currentIndex()).toInt(),
+                                     configurationWindow->comboBox_Devices_OUT->itemData(configurationWindow->comboBox_Devices_OUT->currentIndex()).toInt(),
                                      TETECO_AUDIO_RECEIVER,
-                                     (teteco_speex_band_t)configurationWindow.comboBox_SpeexMode->itemData (configurationWindow.comboBox_SpeexMode->currentIndex()).toInt(),
+                                     (teteco_speex_band_t)configurationWindow->comboBox_SpeexMode->itemData (configurationWindow->comboBox_SpeexMode->currentIndex()).toInt(),
                                      8,
-                                     qPrintable(configurationWindow.lineEdit_Directory->text()));
+                                     qPrintable(configurationWindow->lineEdit_Directory->text()));
         }
     }
 
@@ -298,15 +307,15 @@ void Interface::Server_Listen (bool toggled) {
 
 
         teteco = teteco_start   (TETECO_NET_SERVER,
-                                 configurationWindow.lineEdit_ServerPort->text().toUInt(),
+                                 configurationWindow->lineEdit_ServerPort->text().toUInt(),
                                  0,
                                  NULL,
-                                 configurationWindow.comboBox_Devices_IN->itemData(configurationWindow.comboBox_Devices_IN->currentIndex()).toInt(),
-                                 configurationWindow.comboBox_Devices_OUT->itemData(configurationWindow.comboBox_Devices_OUT->currentIndex()).toInt(),
+                                 configurationWindow->comboBox_Devices_IN->itemData(configurationWindow->comboBox_Devices_IN->currentIndex()).toInt(),
+                                 configurationWindow->comboBox_Devices_OUT->itemData(configurationWindow->comboBox_Devices_OUT->currentIndex()).toInt(),
                                  TETECO_AUDIO_SENDER,
-                                 (teteco_speex_band_t)configurationWindow.comboBox_SpeexMode->itemData (configurationWindow.comboBox_SpeexMode->currentIndex()).toInt(),
+                                 (teteco_speex_band_t)configurationWindow->comboBox_SpeexMode->itemData (configurationWindow->comboBox_SpeexMode->currentIndex()).toInt(),
                                  8,
-                                 qPrintable(configurationWindow.lineEdit_Directory->text()));
+                                 qPrintable(configurationWindow->lineEdit_Directory->text()));
     }
     else {
 
@@ -351,7 +360,7 @@ void Interface::SetStatus (int status) {
         audioLevelTimer.start();
         netLevelTimer.start();
 
-        label_Status.setText ("<font color='green'>CONNECTED</font>");
+        labelStatus->setText ("<font color='green'>CONNECTED</font>");
 
         pushButton_Connect->setText ("Disconnect");
 
@@ -377,10 +386,10 @@ void Interface::SetStatus (int status) {
         buttonServer        ->setEnabled (true);
 
         if (status == TETECO_STATUS_WAITING) {
-            label_Status.setText ("<font color='blue'>WAITING</font>");
+            labelStatus->setText ("<font color='blue'>WAITING</font>");
         }
         else if (status == TETECO_STATUS_CONNECTING) {
-            label_Status.setText ("<font color='yellow'>CONNECTING</font>");
+            labelStatus->setText ("<font color='yellow'>CONNECTING</font>");
             pushButton_Connect->setText ("Disconnect");
         }
         else {
@@ -397,9 +406,9 @@ void Interface::SetStatus (int status) {
             //free (teteco);
             //teteco = NULL;
 
-            label_Status.setText ("<font color='red'>NO CONNECTED</font>");
-            progressBar_Audio.setValue (0);
-            progressBar_Net.setValue (0);
+            labelStatus->setText ("<font color='red'>NO CONNECTED</font>");
+            progressBar_Audio->setValue (0);
+            //progressBar_Net.setValue (0);
 
             if (buttonServer->isChecked()) {
                 lineEdit_Remote->setText (QString ("teteco://"));
@@ -413,7 +422,7 @@ void Interface::SetStatus (int status) {
         }
     }
 
-    progressBar_Audio.setEnabled (connected);
+    progressBar_Audio->setEnabled (connected);
     //progressBar_Net.setEnabled   (connected);
 
 }
@@ -458,26 +467,25 @@ void Interface::FileTransfer (QString filename, int status , int size, int trans
 
         QFileInfo filePath (filename);
         progressBar_File->setFormat(filePath.fileName()+" (%p %)");
-        tranferring.setText ("");
-        printf ("Inserting\n");
-        statusBar()->insertWidget(1, &tranferring);
+        tranferring->setText ("");
+        statusBar()->insertWidget(1, tranferring);
         ViewerVisible (true);
         if (status == TETECO_FILE_TRANSFER_SENDING) {
-            tranferring.setText ("Sending File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
+            tranferring->setText ("Sending File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
         }
         else {
-            tranferring.setText ("Receiving File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
+            tranferring->setText ("Receiving File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
         }
-        tranferring.show();
+        tranferring->show();
     }
     else {
         QProgressBar* progressBar_File = (QProgressBar*) treeWidget_Files->itemWidget(treeWidget_Files->topLevelItem (index), 0);
         progressBar_File->setValue ((uint32_t)actual);
         if (status == TETECO_FILE_TRANSFER_SENDING) {
-            tranferring.setText ("Sending File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
+            tranferring->setText ("Sending File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
         }
         else {
-            tranferring.setText ("Receiving File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
+            tranferring->setText ("Receiving File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
         }
     }
 
@@ -497,7 +505,7 @@ void Interface::FileTransfer (QString filename, int status , int size, int trans
             progressBar_File->setValue  (100);
             progressBar_File->setFormat (filePath.fileName());
         }
-        statusBar()->removeWidget(&tranferring);
+        statusBar()->removeWidget(tranferring);
         transferring = false;
         index ++;
     }
@@ -511,7 +519,7 @@ void Interface::SendFile (void) {
     if (!FileName.isEmpty()) {
         LogAppend (QString("Selected file: ")+FileName);
         buttonSendFile->setEnabled (false);
-        teteco_set_max_transfer_rate (teteco, configurationWindow.lineEdit_Transfer->text().toInt());
+        teteco_set_max_transfer_rate (teteco, configurationWindow->lineEdit_Transfer->text().toInt());
         teteco_file_send (teteco, (char*)qPrintable(FileName));
 
     }
@@ -569,6 +577,8 @@ void Interface::ViewFile (QString FilePath) {
             QObject::connect (comboBox_Scale,  SIGNAL (currentIndexChanged(QString)), Document, SLOT (setScale(QString)));
 
             scrollArea_Viewer->setWidget (Document);
+			Document->show();
+			Document->setVisible(true);
             DocumentControlWidget->setVisible (true);
 
             opened = true;
@@ -605,7 +615,7 @@ void Interface::ViewFile (QString FilePath) {
 
 void Interface::OpenFile () {
 
-    QString FilePath (configurationWindow.lineEdit_Directory->text());
+    QString FilePath (configurationWindow->lineEdit_Directory->text());
     QPushButton* sender = (QPushButton*) QObject::sender();
 
     if (sender != NULL) {

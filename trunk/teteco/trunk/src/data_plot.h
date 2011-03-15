@@ -2,7 +2,7 @@
 #define _DATA_PLOT_H_
 
 #include <stdint.h>
-#include <qwt-qt4/qwt_plot.h>
+#include <qwt_plot.h>
 
 const int PLOT_SIZE = 1000;      // 0 to 200
 

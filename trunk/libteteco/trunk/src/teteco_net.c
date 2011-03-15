@@ -29,7 +29,17 @@
 #define _WIN32_WINNT 0x0501
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include "sys/stdio.h"
+#include "sys/stdio_gnu.h"
+
+#define timersub(a, b, result)                                               \
+  do {                                                                        \
+    (result)->tv_sec = (a)->tv_sec - (b)->tv_sec;                             \
+    (result)->tv_usec = (a)->tv_usec - (b)->tv_usec;                          \
+    if ((result)->tv_usec < 0) {                                              \
+      --(result)->tv_sec;                                                     \
+      (result)->tv_usec += 1000000;                                           \
+    }                                                                         \
+  } while (0)
 
 #else
 
@@ -39,10 +49,13 @@
 #include <netdb.h>
 #include <sys/wait.h>
 
+#define closesocket(a) close(a)
+
 #endif
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdint.h>
@@ -50,6 +63,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <limits.h>
+#include <libgen.h>
 
 #include "log.h"
 #include "util.h"
@@ -107,7 +121,6 @@ int teteco_net_dns_resolv (teteco_t* teteco, const char* fqdn, int port) {
 
 int teteco_net_start (teteco_t* teteco, int local_port, int remote_port, const char* remote_address) {
 
-
     teteco->sd_tcp     = 0;
     teteco->fd         = NULL;
 
@@ -138,17 +151,17 @@ int teteco_net_start (teteco_t* teteco, int local_port, int remote_port, const c
     teteco->local_address_len                 = sizeof(struct sockaddr_in);
 
     if ( 0 > (teteco->sd_udp = socket (PF_INET, SOCK_DGRAM, IPPROTO_UDP))) {
-        log_print ("[teteco_net]: Error in socket: %m");
+        log_print ("[teteco_net]: Error in socket: %m %s", strerror (errno));
         return 0;
     }
     else if ( 0 > (res_setsockopt = setsockopt (teteco->sd_udp, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)))) {
         log_print ("[teteco_net]: Error in setsockopt: %m");
-        close (teteco->sd_udp);
+        closesocket (teteco->sd_udp);
         return 0;
     }
     else if ( 0 > (res_bind = bind (teteco->sd_udp, local_address, sizeof(struct sockaddr_in)))) {
         log_print ("[teteco_net]: Error in bind: %m");
-        close (teteco->sd_udp);
+        closesocket (teteco->sd_udp);
         return 0;
     }
 
@@ -165,7 +178,7 @@ int teteco_net_start (teteco_t* teteco, int local_port, int remote_port, const c
         log_print ("[teteco_net]: Error adding event");
         event_free (teteco->udp_recv_event);
         teteco->udp_recv_event = NULL;
-        close (teteco->sd_udp);
+        closesocket (teteco->sd_udp);
         return 0;
     }
 
@@ -202,7 +215,7 @@ int teteco_net_stop (teteco_t* teteco) {
     }
 
     if (teteco->sd_tcp > 0) {
-        if (-1 == close (teteco->sd_udp)) {
+        if (-1 == closesocket (teteco->sd_udp)) {
             log_print ("[teteco_net]: Error closing socket: %m");
         }
     }
@@ -332,8 +345,7 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
         }
 
         if (protocol.voice_ack.has) {
-            //log_print ("Received %d bytes\n", recv);
-            log_print ("\n\nACK seq:%u num:%u\n\n", protocol.voice_ack.last, protocol.voice_ack.number_received);
+            //log_print ("\n\nACK seq:%u num:%u\n\n", protocol.voice_ack.last, protocol.voice_ack.number_received);
         }
 
         if (protocol.voice.has) {
@@ -346,8 +358,6 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
                 ack = last_received;
                 nr++;
 
-                log_print ("ack:%d last_sent_ack:%d teteco->voice_ack_every: %d\n", ack, last_sent_ack, teteco->voice_ack_every);
-
                 if (ack-last_sent_ack >= teteco->voice_ack_every || ack < last_sent_ack) {
 
                     char*        datagram = NULL;
@@ -358,7 +368,6 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
                     protocol2.voice_ack.last = ack;
                     protocol2.voice_ack.number_received = nr;
                     protocol_build_datagram (protocol2, &datagram, &datagram_len);
-                    log_print ("[client]: Sending ack \n");
                     teteco_net_send (teteco, datagram, datagram_len);
                     util_free (datagram);
                     last_sent_ack = ack;
@@ -461,20 +470,20 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
         }
 
         // Get Chat
-        chat_entry_t* chat_entry = chat_get (teteco->chat_data);
+        chat_node_t* chat_node = chat_get (teteco->chat_data);
 
-        if (chat_entry != NULL) {
+        if (chat_node != NULL) {
             //(log_print) (LOG_DEBUG, "[server]: Sending: %s", chat_entry);
             protocol.status = 1;
             protocol.chat.has = 1;
-            protocol.chat.seq  = chat_entry->comment_number;
-            protocol.chat.size = chat_entry->size;
-            log_print ("[sender]: Chat entry: seq:%d size:%d comment:%s", chat_entry->comment_number, chat_entry->size, chat_entry->comment);
-            memcpy (&protocol.chat.payload, chat_entry->comment, chat_entry->size);
+            protocol.chat.seq  = chat_node->comment_number;
+            protocol.chat.size = chat_node->size;
+            log_print ("[sender]: Chat entry: seq:%d size:%d comment:%s", chat_node->comment_number, chat_node->size, chat_node->comment);
+            memcpy (&protocol.chat.payload, chat_node->comment, chat_node->size);
         }
 
         // Get Chat ack
-        chat_ack_t* chat_ack = chat_ack_get (teteco->chat_data);
+        chat_ack_node_t* chat_ack = chat_ack_get (teteco->chat_data);
 
         if (chat_ack != NULL) {
             protocol.status = 1;
@@ -526,19 +535,21 @@ int teteco_net_file_listen (teteco_t* teteco, int *local_port) {
         log_print ("[teteco_net]: Error in socket: %m");
         return 0;
     }
+	
+	 
 
-    if ( 0 > bind (sd_listen, &local_address_tcp_in, sizeof (struct sockaddr_in))) {
+    if ( 0 > bind (sd_listen, (const struct sockaddr*)&local_address_tcp_in, sizeof (struct sockaddr_in))) {
         log_print ("[teteco_net]: Error on bind: %m");
-        close (teteco->sd_tcp);
+        closesocket (teteco->sd_tcp);
         teteco->sd_tcp = 0;
         return 0;
     }
 
     // Get the binded port
 
-    if ( 0 > getsockname (sd_listen, &local_address_tcp_in, &address_in_len)) {
+    if ( 0 > getsockname (sd_listen, (struct sockaddr*)&local_address_tcp_in, &address_in_len)) {
         log_print ("[teteco_net]: Error on getsockname: %m");
-        close (teteco->sd_tcp);
+        closesocket (teteco->sd_tcp);
         teteco->sd_tcp = 0;
         return 0;
     }
@@ -549,7 +560,7 @@ int teteco_net_file_listen (teteco_t* teteco, int *local_port) {
 
     if ( 0 > listen (sd_listen, 0)) {
         log_print ("[teteco_net]: Error on listen: %m");
-        close (teteco->sd_tcp);
+        closesocket (teteco->sd_tcp);
         teteco->sd_tcp = 0;
         return 0;
     }
@@ -583,7 +594,7 @@ int teteco_net_file_connect (teteco_t* teteco, int remote_port) {
 
     if ( 0 > connect (teteco->sd_tcp, (const struct sockaddr*)&remote_address_tcp_in, sizeof (struct sockaddr_in))) {
         log_print ("[teteco_net]: Error in connect: %m\n");
-        close (teteco->sd_tcp);
+        closesocket (teteco->sd_tcp);
         teteco->sd_tcp = 0;
         return 0;
     }
@@ -634,15 +645,15 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
         event_free (teteco->tcp_send_event);
         teteco->tcp_send_event = NULL;
 
-        teteco->sd_tcp = accept (sd, &remote_address_tcp_in, &address_in_len);
+        teteco->sd_tcp = accept (sd, (struct sockaddr*)&remote_address_tcp_in, &address_in_len);
 
         if (0 > teteco->sd_tcp) {
-            log_print ("[teteco_net]: Error on listen: %m");
-            close (sd);
+            log_print ("[teteco_net]: Error on aceept: %m");
+            closesocket (sd);
             teteco->sd_tcp = 0;
             return;
         }
-        close (sd);
+        closesocket (sd);
 
         sleep_time.tv_sec = 0;
         sleep_time.tv_usec = 1;
@@ -671,6 +682,7 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
         if ((teteco->fd = fopen (teteco->file, "rb")) == NULL) {
             log_print ("[teteco_net]: Error opening file: %s\n", teteco->file);
             file_transfer_callback (teteco->file, TETECO_FILE_TRANSFER_END, 0, 0);
+			return;
         }
 
         struct stat st;
@@ -679,18 +691,18 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
 
         log_print ("[teteco_net]: File size is: %u\n", file_size);
 
-        if ( -1 == write (teteco->sd_tcp, &file_size, sizeof(uint32_t))) {
-            log_print ("[teteco_net]: Error sending file size\n");
-            close (teteco->sd_tcp);
+        if ( -1 == send (teteco->sd_tcp, (void*)&file_size, sizeof(uint32_t), 0)) {
+            log_print ("[teteco_net]: Error sending file size: %s\n", strerror(errno));
+            closesocket (teteco->sd_tcp);
             teteco->sd_tcp = 0;
             fclose (teteco->fd);
             teteco->fd = NULL;
             file_transfer_callback (teteco->file, TETECO_FILE_TRANSFER_END, 0, 0);
         }
 
-        if ( -1 == write (teteco->sd_tcp, &file_name_size, sizeof(file_name_size))) {
+        if ( -1 == send (teteco->sd_tcp, (void*)&file_name_size, sizeof(file_name_size), 0)) {
             log_print ("[teteco_net]: Error sending file name size\n");
-            close (teteco->sd_tcp);
+            closesocket (teteco->sd_tcp);
             teteco->sd_tcp = 0;
             fclose (teteco->fd);
             teteco->fd = NULL;
@@ -699,9 +711,9 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
 
         log_print ("[teteco_net]: Sendinf file name: %s\n", file_name);
 
-        if ( -1 == write (teteco->sd_tcp, file_name, strlen (file_name))) {
+        if ( -1 == send (teteco->sd_tcp, (void*)file_name, strlen (file_name), 0)) {
             log_print ("[teteco_net]: Error sending file name\n");
-            close (teteco->sd_tcp);
+            closesocket (teteco->sd_tcp);
             teteco->sd_tcp = 0;
             fclose (teteco->fd);
             teteco->fd = NULL;
@@ -715,7 +727,7 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
     int written = 0;
 
     while (written < read) {
-        written += write (teteco->sd_tcp, buffer, read);
+        written += send (teteco->sd_tcp, (void*)buffer, read, 0);
         if (written < 0 ) break;
     }
 
@@ -725,7 +737,7 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
 
     if (written == -1 ) {
         log_print ("[teteco_net]: Error sending file\n");
-        close (teteco->sd_tcp);
+        closesocket (teteco->sd_tcp);
         teteco->sd_tcp = 0;
         fclose (teteco->fd);
         teteco->fd = NULL;
@@ -775,7 +787,7 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
     else {
         log_print ("File completly sent\n");
         file_transfer_callback (teteco->file, TETECO_FILE_TRANSFER_END, file_size, sent_so_far);
-        close (teteco->sd_tcp);
+        closesocket (teteco->sd_tcp);
         teteco->sd_tcp = 0;
         fclose (teteco->fd);
         teteco->fd = NULL;
@@ -807,15 +819,15 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
         event_free (teteco->tcp_read_event);
         teteco->tcp_read_event = NULL;
 
-        teteco->sd_tcp = accept (sd, &remote_address_tcp_in, &address_in_len);
+        teteco->sd_tcp = accept (sd, (struct sockaddr*)&remote_address_tcp_in, &address_in_len);
 
         if (0 > teteco->sd_tcp) {
             log_print ("[teteco_net]: Error on listen: %m");
-            close (sd);
+            closesocket (sd);
             teteco->sd_tcp = 0;
             return;
         }
-        close (sd);
+        closesocket (sd);
 
         teteco->tcp_read_event = event_new (event_base, teteco->sd_tcp, EV_READ|EV_PERSIST, teteco_net_file_recv_callback, teteco);
         event_add (teteco->tcp_read_event, NULL);
@@ -840,23 +852,23 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
         received = 0;
         file_size = 0;
 
-        if (read (sd, &file_size, sizeof (file_size)) < sizeof (file_size)) {
+        if (recv (sd, (void*)&file_size, sizeof (file_size), 0) < sizeof (file_size)) {
             log_print ("[teteco_net]: Error on read (file size): %m\n");
             event_del  (teteco->tcp_read_event);
             event_free (teteco->tcp_read_event);
             teteco->tcp_read_event = NULL;
-            close (sd);
+            closesocket (sd);
             file_transfer_callback ("", TETECO_FILE_TRANSFER_END, 0, 0);
         }
 
         log_print ("[teteco_net]: Got file size: %u\n", file_size);
 
-        if (read (sd, &file_name_size, sizeof (file_name_size)) < sizeof (file_name_size)) {
+        if (recv (sd, (void*)&file_name_size, sizeof (file_name_size), 0) < sizeof (file_name_size)) {
             log_print ("[teteco_net]: Error on read (file name size): %m\n");
             event_del  (teteco->tcp_read_event);
             event_free (teteco->tcp_read_event);
             teteco->tcp_read_event = NULL;
-            close (sd);
+            closesocket (sd);
             file_transfer_callback ("", TETECO_FILE_TRANSFER_END, 0, 0);
         }
 
@@ -865,14 +877,14 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
         char file_name[file_name_size+1];
         file_name[file_name_size] = '\0';
 
-        if (read (sd, &file_name, file_name_size) < file_name_size) {
+        if (recv (sd, (void*)&file_name, file_name_size, 0) < file_name_size) {
             log_print ("[teteco_net]: Error on read (file name): %m\n");
             if (teteco->tcp_read_event != NULL) {
                 event_del  (teteco->tcp_read_event);
                 event_free (teteco->tcp_read_event);
                 teteco->tcp_read_event = NULL;
             }
-            close (sd);
+            closesocket (sd);
             file_transfer_callback ("", TETECO_FILE_TRANSFER_END, 0, 0);
         }
 
@@ -890,10 +902,12 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
 
         if ((teteco->fd = fopen (file_path, "wb")) == NULL) {
             log_print ("[teteco_net]: Error opening file: %s\n", file_path);
-            event_del  (teteco->tcp_read_event);
-            event_free (teteco->tcp_read_event);
-            teteco->tcp_read_event = NULL;
-            close (sd);
+			if (teteco->tcp_read_event != NULL) {
+                event_del  (teteco->tcp_read_event);
+                event_free (teteco->tcp_read_event);
+                teteco->tcp_read_event = NULL;
+            }
+            closesocket (sd);
             free (file_path);
             file_transfer_callback ("", TETECO_FILE_TRANSFER_END, 0, 0);
         }
@@ -908,7 +922,7 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
 
     int readed = 0;
 
-    readed = read (sd, buffer, buffer_size);
+    readed = recv (sd, (void*)buffer, buffer_size, 0);
     fwrite (buffer, 1, readed, teteco->fd);
     received += readed;
 
@@ -917,14 +931,12 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
 
     teteco->transfer_rate = (float) received / (float)total_time.tv_sec + ((float)total_time.tv_usec*0.0000001F);
 
-    log_print ("[teteco_net]: Readed %d bytes\n", readed);
-
     if (readed < 0) {
         log_print ("[teteco_net]: Error on read: %m\n");
         event_del  (teteco->tcp_read_event);
         event_free (teteco->tcp_read_event);
         teteco->tcp_read_event = NULL;
-        close (sd);
+        closesocket (sd);
         fclose (teteco->fd);
         teteco->fd = NULL;
     }
@@ -933,7 +945,7 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
         event_del  (teteco->tcp_read_event);
         event_free (teteco->tcp_read_event);
         teteco->tcp_read_event = NULL;
-        close (sd);
+        closesocket (sd);
         fclose (teteco->fd);
         teteco->fd = NULL;
         file_transfer_callback (filename, TETECO_FILE_TRANSFER_END, file_size, received);

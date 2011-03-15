@@ -21,6 +21,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef __WINDOWS__
+#define PTW32_STATIC_LIB 1
+#include "sys/stdio_gnu.h"
+#endif
 
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -362,23 +366,37 @@ int teteco_set_file_transfer_callback (file_transfer_callback_ft file_transfer_c
 
 int teteco_init () {
 
+#ifdef __WINDOWS__
+	pthread_win32_process_attach_np();
+	WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0) {
+        log_print ("WSAStartup failed.\n");
+        return 0;
+    }
+#endif
+
     PaError error = Pa_Initialize();
 
     if (error == paNoError) {
         log_print ("[teteco]: PortAudio version= %s - %d", Pa_GetVersionText(), Pa_GetVersion());
-        return 0;
+		event_base = event_base_new ();
+        return 1;
     }
     else {
         log_print ("[teteco]: Error initializing PortAudio: %s", Pa_GetErrorText (error));
-        return 1;
-
-        event_base = event_base_new ();
-
+        return 0;
     }
+	
+	
 
 }
 
 int teteco_end (void) {
+
+#ifdef __WINDOWS__
+	WSACleanup();
+	pthread_win32_process_detach_np();
+#endif
 
     PaError error = Pa_Terminate();
 
@@ -386,7 +404,7 @@ int teteco_end (void) {
         log_print ("[teteco]: Stopped");
 
         event_base_free (event_base);
-
+		
         return 1;
     }
     else {
@@ -458,6 +476,8 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->max_transfer_rate = 0;
         teteco->local_address_len = sizeof (struct sockaddr_in);
         teteco->remote_address_len = sizeof (struct sockaddr_in);
+		
+		teteco->chat_data        = chat_start ();
 
         teteco->enc_speex_band   = (enc_speex_band==TETECO_SPEEX_NB)?ENC_SPEEX_NB:
                                    (enc_speex_band==TETECO_SPEEX_WB)?ENC_SPEEX_WB:
@@ -469,8 +489,6 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
             log_print ("[teteco]: Error iniating network");
             return teteco_stop (teteco);
         }
-
-        teteco->chat_data        = chat_start ();
 
         if (client_or_server == TETECO_CLIENT) {
             if (!teteco_send_helo (teteco)) {

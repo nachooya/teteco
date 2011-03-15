@@ -33,8 +33,10 @@ chat_data_t* chat_start (void) {
 
     chat_data_t* chat_data = util_malloc (sizeof(chat_data_t));
 
-    TAILQ_INIT (&chat_data->chat_queue);
-    TAILQ_INIT (&chat_data->chat_ack_queue);
+	chat_data->chat_list.first = NULL;
+	chat_data->chat_list.last  = NULL;
+	chat_data->chat_ack_list.first = NULL;
+	chat_data->chat_ack_list.last  = NULL;
 
     chat_data->comment_seq   = 0;
     chat_data->last_recv_ack = 0;
@@ -44,21 +46,23 @@ chat_data_t* chat_start (void) {
 
 chat_data_t* chat_stop (chat_data_t* chat_data) {
 
-    chat_entry_t* chat_entry = chat_data->chat_queue.tqh_first;
+	if (chat_data == NULL) return NULL;
 
-    while (chat_entry != NULL) {
-        TAILQ_REMOVE(&chat_data->chat_queue, chat_entry, chat_entries);
-        util_free (chat_entry->comment);
-        util_free (chat_entry);
-        chat_entry = chat_data->chat_queue.tqh_first;
+    chat_node_t* chat_node = chat_data->chat_list.first;
+
+    while (chat_node != NULL) {
+		chat_data->chat_list.first = ((chat_node_t*)(chat_data->chat_list.first))->next_entry;
+        util_free (chat_node->comment);
+        util_free (chat_node);
+        chat_node = chat_data->chat_list.first;
     }
 
-    chat_ack_t* chat_ack = chat_data->chat_ack_queue.tqh_first;
+    chat_ack_node_t* chat_ack_node = chat_data->chat_ack_list.first;
 
-    while (chat_ack != NULL) {
-        TAILQ_REMOVE(&chat_data->chat_ack_queue, chat_ack, chat_acks);
-        util_free (chat_ack);
-        chat_ack = chat_data->chat_ack_queue.tqh_first;
+    while (chat_ack_node != NULL) {
+		chat_data->chat_ack_list.first = ((chat_ack_node_t*)(chat_data->chat_ack_list.first))->next_ack;
+        util_free (chat_ack_node);
+        chat_ack_node = chat_data->chat_ack_list.first;
     }
 
     util_free (chat_data);
@@ -78,8 +82,6 @@ int chat_add (chat_data_t* chat_data, const char* comment) {
     char* next_to_write = (char*)comment;
 
     // Look for space on previous entry
-
-
     // Then write the rest splitted in CHAT_MAX_LENGTH
 
     #define CHAT_MAX_LENGTH 100
@@ -88,39 +90,48 @@ int chat_add (chat_data_t* chat_data, const char* comment) {
 
         unsigned now_write = bytes_to_write > CHAT_MAX_LENGTH ? CHAT_MAX_LENGTH : bytes_to_write;
 
-        chat_entry_t* chat_entry = util_calloc (1, sizeof(chat_entry_t));
+        chat_node_t* chat_node = util_calloc (1, sizeof(chat_node_t));
 
-        chat_entry->comment_number = chat_data->comment_seq++;
+        chat_node->comment_number = chat_data->comment_seq++;
 
-        chat_entry->comment = util_calloc (now_write, sizeof(char));
+        chat_node->entry = util_calloc (now_write, sizeof(char));
 
-        memcpy (chat_entry->comment, next_to_write, now_write);
-        chat_entry->size = now_write;
+        memcpy (chat_node->entry, next_to_write, now_write);
+        chat_node->size = now_write;
+		chat_node->next_entry = NULL;
 
         bytes_to_write -= now_write;
         next_to_write += now_write;
+		
+		if (chat_data->chat_list.first == NULL) {
+		    chat_data->chat_list.first = chat_node;
+		}
+		else {
+			((chat_node_t*)(chat_data->chat_list.last))->next_entry = chat_node;
+		}
+		chat_data->chat_list.last = chat_node;
 
-        TAILQ_INSERT_TAIL (&chat_data->chat_queue, chat_entry, chat_entries);
     }
 
     return 1;
 
 }
 
-chat_entry_t* chat_get (chat_data_t* chat_data) {
+chat_node_t* chat_get (chat_data_t* chat_data) {
 
-    chat_entry_t* chat_entry = chat_data->chat_queue.tqh_first;
+    chat_node_t* chat_node = chat_data->chat_list.first;
 
-    return chat_entry;
+    return chat_node;
 
 }
 
 int chat_ack (chat_data_t* chat_data, uint16_t seq) {
 
-    chat_entry_t* chat_entry = chat_data->chat_queue.tqh_first;
+    chat_node_t* chat_node = chat_data->chat_list.first;
 
-    if (chat_entry != NULL) {
-        TAILQ_REMOVE(&chat_data->chat_queue, chat_entry, chat_entries);
+    if (chat_node != NULL) {
+		chat_data->chat_list.first = ((chat_node_t*)(chat_data->chat_list.first))->next_entry;
+		if (chat_data->chat_list.first == NULL) chat_data->chat_list.last = NULL;
         chat_data->last_recv_ack = seq;
         return 1;
     }
@@ -138,24 +149,32 @@ int chat_ack_add (chat_data_t* chat_data, uint16_t ack_num) {
         return 0;
     }
 
-    chat_ack_t* chat_ack = util_malloc (sizeof(chat_ack_t));
+    chat_ack_node_t* chat_ack_node = util_malloc (sizeof(chat_ack_node_t));
 
-    chat_ack->ack_num = ack_num;
+    chat_ack_node->ack_num = ack_num;
+	chat_ack_node->next_ack = NULL;
 
-    TAILQ_INSERT_TAIL (&chat_data->chat_ack_queue, chat_ack, chat_acks);
-
+	if (chat_data->chat_ack_list.first == NULL) {
+		chat_data->chat_ack_list.first = chat_ack_node;
+	}
+	else {
+		((chat_ack_node_t*)(chat_data->chat_ack_list.first))->next_ack = chat_ack_node;
+	}
+	chat_data->chat_ack_list.last = chat_ack_node;
+	
     return 1;
 
 }
 
-chat_ack_t* chat_ack_get (chat_data_t* chat_data) {
+chat_ack_node_t* chat_ack_get (chat_data_t* chat_data) {
 
-    chat_ack_t* chat_ack = chat_data->chat_ack_queue.tqh_first;
+    chat_ack_node_t* chat_ack_node = chat_data->chat_ack_list.first;
 
-    if (chat_ack != NULL) {
-        TAILQ_REMOVE(&chat_data->chat_ack_queue, chat_ack, chat_acks);
+    if (chat_ack_node != NULL) {
+		chat_data->chat_ack_list.first = ((chat_ack_node_t*)(chat_data->chat_ack_list.first))->next_ack;
+		if (chat_data->chat_ack_list.first == NULL) chat_data->chat_ack_list.last = NULL;
     }
 
-    return chat_ack;
+    return chat_ack_node;
 
 }

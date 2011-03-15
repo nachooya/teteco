@@ -1,0 +1,19 @@
+Windows Compilation
+===================
+
+Install MinGW
+
+pthreads-w32
+make clean GC-static
+
+libevent
+./configure --disable-openssl --disable-malloc-replacement
+make
+
+portaudio
+./configure
+make
+
+speex
+./configure
+make

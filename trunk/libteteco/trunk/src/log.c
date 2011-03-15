@@ -23,7 +23,7 @@
 
 
 #ifdef __WINDOWS__
-#include "sys/stdio.h"
+#include "sys/stdio_gnu.h"
 #endif
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -51,8 +51,13 @@ void log_print (char* fmt, ...) {
 
     vasprintf(&entry, fmt, args);
 
-    printf ("LOG: %s\n", entry);
-
+	
+    fprintf (stderr, "LOG: %s\n", entry);
+	#ifdef __WINDOWS__
+	fflush (stderr);
+	fflush (stdout);
+	#endif
+	
     (log_callback) (entry);
 
     free (entry);

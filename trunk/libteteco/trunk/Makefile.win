@@ -1,25 +1,52 @@
 CFLAGS=-Wall -c -g -D__WINDOWS__ -DBUILDING_TETECO_DLL
 
-INCLUDE=-I../libs/win/portaudio/include -I../libs/win/speex-1.2rc1/include
-LDFLAGS=-shared -L../libs/win/portaudio/lib/.libs -L ../libs/win/speex-1.2rc1/libspeex/.libs/ -lws2_32 -lpthread -lportaudio -lspeex -lspeexdsp
+INCLUDE=-I../libs/libevent-2.0.10-stable/include \
+        -I../libs/portaudio/include \
+		-I../libs/speex-1.2rc1/include \
+		-I../libs/pthreads-w32-2-8-0-release
+LDFLAGS=-static -static-libgcc -lwinmm -lws2_32
+LIBS_STATIC=../libs/pthreads-w32-2-8-0-release/libpthreadGC2.a \
+	 ../libs/libevent-2.0.10-stable/.libs/libevent.a \
+     ../libs/portaudio/lib/.libs/libportaudio.a \
+     ../libs/speex-1.2rc1/libspeex/.libs/libspeex.a \
+     ../libs/speex-1.2rc1/libspeex/.libs/libspeexdsp.a
+	 
+
 CC=gcc
 
-SOURCES=net.c audio.c enc_speex.c circular_buffer.c util.c speex_jitter_buffer.c protocol.c chat.c log.c teteco.c receive_thread.c sys/stdio.c
+SOURCES=src/teteco_net.c \
+        src/audio.c \
+        src/enc_speex.c \
+        src/circular_buffer.c \
+        src/util.c \
+        src/speex_jitter_buffer.c \
+        src/protocol.c \
+        src/chat.c \
+        src/log.c \
+        src/teteco.c \
+		src/sys/stdio_gnu.c
+
 
 OBJECTS=$(SOURCES:.c=.o)
-LIBRARY=teteco.dll
+LIBRARY=src/teteco.a
 
 all: $(SOURCES) $(LIBRARY)
 
 $(LIBRARY): $(OBJECTS)
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+		
+	for i in $(LIBS_STATIC); do \
+    	ar x $$i ; \
+	done
+
+	ar rvs $(LIBRARY) $(OBJECTS) *.o
+	rm *.o
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@
 
 
 clean:
-	rm -f *.so* *.o
+	rm -f src/*.dll src/*.o src/*.a
 
 
 debian:
