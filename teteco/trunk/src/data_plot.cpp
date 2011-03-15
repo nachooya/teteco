@@ -1,12 +1,12 @@
 #include <stdlib.h>
-#include <qwt-qt4/qwt_painter.h>
-#include <qwt-qt4/qwt_plot_canvas.h>
-#include <qwt-qt4/qwt_plot_marker.h>
-#include <qwt-qt4/qwt_plot_curve.h>
-#include <qwt-qt4/qwt_scale_widget.h>
-#include <qwt-qt4/qwt_legend.h>
-#include <qwt-qt4/qwt_scale_draw.h>
-#include <qwt-qt4/qwt_math.h>
+#include <qwt_painter.h>
+#include <qwt_plot_canvas.h>
+#include <qwt_plot_marker.h>
+#include <qwt_plot_curve.h>
+#include <qwt_scale_widget.h>
+#include <qwt_legend.h>
+#include <qwt_scale_draw.h>
+#include <qwt_math.h>
 #include "data_plot.h"
 
 //

@@ -13,8 +13,8 @@ class Interface : public QMainWindow, private Ui::MainWindow {
 
     private:
 
-        QProgressBar        progressBar_Audio;
-        QProgressBar        progressBar_Net;
+        QProgressBar*       progressBar_Audio;
+        //QProgressBar*       progressBar_Net;
         QPushButton*        buttonServer;
         QPushButton*        buttonSendFile;
         QAction*            actionSendFile;
@@ -22,21 +22,21 @@ class Interface : public QMainWindow, private Ui::MainWindow {
         QTimer              statisticsTimer;
         QTimer              audioLevelTimer;
         QTimer              netLevelTimer;
-        QLabel              label_Status;
-        ConfigurationWindow configurationWindow;
-        StatisticsWindow    statisticsWindow;
+        QLabel*             labelStatus;
+        ConfigurationWindow* configurationWindow;
+        StatisticsWindow*   statisticsWindow;
         teteco_t*           teteco;
 
         QSettings               settings;
         QMap<QString, QVariant> Bookmarks;
-        QLabel              tranferring;
+        QLabel*                 tranferring;
 
         void ViewFile       (QString FilePath);
 
     public:
 
         Interface (QMainWindow *parent = 0);
-        ~Interface () {statisticsWindow.close(); };
+        ~Interface () {statisticsWindow->close(); };
 
     private slots:
 

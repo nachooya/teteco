@@ -23,8 +23,6 @@ LIBRARY_STATIC=src/libteteco.a
 
 all: $(SOURCES) $(LIBRARY_STATIC)
 	
-
-
 $(LIBRARY_STATIC): $(OBJECTS)
 
 	for i in $(LIBS_STATIC); do \
@@ -32,8 +30,8 @@ $(LIBRARY_STATIC): $(OBJECTS)
 	done
 
 
-#	ar rcs libfinal.a *.o
-	ar -cvq $(LIBRARY_STATIC) $(OBJECTS) *.o
+	ar rcs $(LIBRARY_STATIC) $(OBJECTS) *.o
+#	ar -cvq $(LIBRARY_STATIC) $(OBJECTS) *.o
 	rm *.o
 
 .c.o:

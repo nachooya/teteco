@@ -5,7 +5,7 @@
  #include <errno.h>
  #include <stdarg.h>
  
- #include "stdio.h"
+ #include "stdio_gnu.h"
  
  #define	INIT_SZ	128
  

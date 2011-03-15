@@ -55,12 +55,10 @@ void ConfigurationWindow::SelectDir (void) {
 
 void ConfigurationWindow::LoadConfiguration (void) {
 
-    printf ("Configuration loaded: %d\n", comboBox_Devices_IN->findData (settings.value("global/device_in", 0).toString()));
-
     comboBox_SpeexMode->setCurrentIndex   (settings.value("global/speexmode", 0).toInt());
     spinBox_SpeexQuality->setValue        (settings.value("global/speexquality", 8).toInt());
     comboBox_Devices_IN->setCurrentIndex  (comboBox_Devices_IN->findData (settings.value("global/device_in", 0).toInt()));
-    comboBox_Devices_OUT->setCurrentIndex (comboBox_Devices_IN->findData (settings.value("global/device_out", 0).toInt()));
+    comboBox_Devices_OUT->setCurrentIndex (comboBox_Devices_OUT->findData (settings.value("global/device_out", 0).toInt()));
     lineEdit_ServerPort->setText          (settings.value("global/serverport", 22022).toString());
     lineEdit_Directory->setText           (settings.value("global/filesdirectory", QDir::homePath ()).toString());
     lineEdit_Transfer->setText            (settings.value("global/trasnferrate", 0).toString());

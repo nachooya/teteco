@@ -22,7 +22,7 @@
  */
 
 #ifdef __WINDOWS__
-#include "sys/stdio.h"
+#include "sys/stdio_gnu.h"
 #endif
 #define _GNU_SOURCE
 #include <stdio.h>

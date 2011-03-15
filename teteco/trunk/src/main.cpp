@@ -38,7 +38,6 @@ void FileTransferCallback (const char* filename, teteco_file_transfer_status_t s
         previous = actual;
     }
     else if (actual != previous) {
-        printf ("Actual: %llu (%u %u)\n", actual, total_size, transmitted);
         Proxy::singleton()->FileTransferCallback (filename, status, total_size, transmitted);
         previous = actual;
     }
@@ -46,7 +45,13 @@ void FileTransferCallback (const char* filename, teteco_file_transfer_status_t s
 }
 
 
-int main(int argc, char *argv[]) {
+int main (int argc, char *argv[]) {
+
+	printf ("HOLA\n");
+
+    QCoreApplication::setOrganizationName   ("TEDECO");
+    QCoreApplication::setOrganizationDomain ("tedeco.fi.upm.es");
+    QCoreApplication::setApplicationName    ("teteco");
 
     teteco_set_log_callback           (&LogCallBack);
     teteco_set_chat_callback          (&ChatCallBack);
@@ -54,21 +59,17 @@ int main(int argc, char *argv[]) {
     teteco_set_file_transfer_callback (&FileTransferCallback);
     teteco_init ();
 
-//     Q_INIT_RESOURCE(application);
+	QApplication app        (argc, argv);
 
-    QCoreApplication::setOrganizationName   ("TEDECO");
-    QCoreApplication::setOrganizationDomain ("tedeco.fi.upm.es");
-    QCoreApplication::setApplicationName    ("teteco");
-
+	app.setOrganizationName ("TEDECO");
+    app.setApplicationName  ("teteco");
+	//Q_INIT_RESOURCE         (application);
+	
     QSettings settings (QSettings::NativeFormat, QSettings::UserScope, "TEDECO", "teteco");
 
     // /home/nacho/.config/TEDECO/teteco.conf
 
-    QApplication app        (argc, argv);
-    app.setOrganizationName ("TEDECO");
-    app.setApplicationName  ("teteco");
-
-    QFile f(":/interface.css");
+    QFile f(":/teteco.css");
     if (f.open(QIODevice::ReadOnly)) {
         app.setStyleSheet(f.readAll());
         f.close();

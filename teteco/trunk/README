@@ -6,4 +6,48 @@ Compilation
 qmake teteco.linux.pro
 make
 
+* Windows
 
+
+qwt
+From qt shell
+qmake
+make
+
+freetype
+./configure --prefix=`pwd`/..
+make
+make install
+
+poppler
+
+POPPLER_QT4_CFLAGS=-I/c/Qt/4.7.2/include/ \
+POPPLER_QT4_CXXFLAGS=-I/c/Qt/4.7.2/include/ \
+POPPLER_QT4_LIBS='-L/c/Qt/4.7.2/lib/ -lQtCore4 -lQtGui4 -lQtXml4' \
+POPPLER_QT4_TEST_CFLAGS=-I/c/Qt/4.7.2/include/ \
+POPPLER_QT4_TEST_LIBS='-L/c/Qt/4.7.2/lib/ -lQtCore4 -lQtGui4 -lQtXml4' \
+FREETYPE_CONFIG=`pwd`/../bin/freetype-config \
+-U_WIN32 -UPOPPLER_QT4_EXPORT \
+./configure --enable-poppler-qt4 --disable-utils
+
+make
+
+
+http://qtnode.net/wiki?title=Building_static
+http://www.formortals.com/how-to-statically-link-qt-4/
+http://www.formortals.com/build-qt-static-small-microsoft-intel-gcc-compiler/
+http://spv.rubico.info/wiki/developers/setup/windows#fifth_stepinstall_poppler_and_some_other_libraries
+
+windows.kde.org
+    * poppler-mingw: Bin and Devel version;
+    * poppler-data: Bin version;
+    * fontconfig-mingw: Bin version;
+    * freetype-mingw: Bin version;
+    * jpeg: Bin version;
+    * libpng: Bin version (FIXME: is it really needed ?);
+    * libxml2: Bin version;
+    * iconv: Bin version;
+    * zlib: Bin version.
+
+	  
+configure -static -fast -opensource -release -no-accessibility -no-sql-sqlite -no-qt3support -no-opengl -no-openvg -qt-zlib -qt-gif -qt-libpng -qt-libmng -qt-libtiff -qt-libjpeg -no-multimedia -no-webkit -qt-style-windows -qt-style-windowsxp -qt-style-windowsvista

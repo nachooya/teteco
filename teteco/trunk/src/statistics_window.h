@@ -11,6 +11,6 @@ class StatisticsWindow : public QDialog, public Ui::dialog_Statistics {
     public:
         StatisticsWindow (QDialog *parent = 0);
 
-        DataPlot Graph;
+        DataPlot* Graph;
 
 };
