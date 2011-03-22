@@ -37,6 +37,9 @@ class Interface : public QMainWindow, private Ui::MainWindow {
 
         Interface (QMainWindow *parent = 0);
         ~Interface () {statisticsWindow->close(); };
+		
+	private: 
+		void NewTreeWidgetFiles (void);
 
     private slots:
 
@@ -46,6 +49,8 @@ class Interface : public QMainWindow, private Ui::MainWindow {
         void SetNetMode         (bool server);
         void UpdateStatistics   (void);
         void ChatAppend         (QString entry);
+		void AppControlReceived (int argument1, int argument2);
+		void SendPageChanged    (int page);
         void LogAppend          (QString entry);
         void SetStatus          (int status);
         void AudioLevel         (void);

@@ -65,6 +65,12 @@ void chat_callback_default (char* entry) {
 
 }
 
+void app_control_callback_default (int32_t argument1, int32_t argument2) {
+
+	printf ("[app_control]: Received: %d - %d\n", argument1, argument2);
+	
+}
+
 void status_callback_default (teteco_status_t status) {
 
     printf ("[status]: New status: %d\n", status);
@@ -231,6 +237,7 @@ void* teteco_main_thread (void* data) {
 
 log_callback_ft             log_callback           = &log_callback_default;
 chat_callback_ft            chat_callback          = &chat_callback_default;
+app_control_callback_ft     app_control_callback   = &app_control_callback_default;
 status_callback_ft          status_callback        = &status_callback_default;
 file_transfer_callback_ft   file_transfer_callback = &file_transfer_callback_default;
 
@@ -246,6 +253,13 @@ void teteco_chat_received (teteco_t* teteco, char* entry) {
 
     (chat_callback) (entry);
     free (entry);
+
+}
+
+void teteco_control_app_received (teteco_t* teteco, int32_t argument1, int32_t argument2) {
+
+	log_print ("[teteco]: Received App control: %d - %d", argument1, argument2);
+	(app_control_callback) (argument1, argument2);
 
 }
 
@@ -333,6 +347,18 @@ int teteco_set_chat_callback (chat_callback_ft chat_callback_ref) {
     }
 
     (log_callback)   ("[teteco]: Chat callback set: Testing...");
+
+    return 1;
+
+}
+
+int teteco_set_app_control_callback (app_control_callback_ft app_control_callback_ref) {
+
+    if (app_control_callback_ref != NULL) {
+        app_control_callback = app_control_callback_ref;
+    }
+
+    (log_callback)   ("[teteco]: App control callback set..");
 
     return 1;
 
@@ -603,6 +629,27 @@ int teteco_chat_send (teteco_t* teteco, const char* comment) {
         return 0;
     }
     return 1;
+}
+
+int teteco_app_control_send (teteco_t* teteco, int32_t argument1, int32_t argument2) {
+
+	char*        datagram = NULL;
+	unsigned int datagram_len = 0;
+
+	protocol_t protocol2 = protocol_init;
+	protocol2.control.has = 1;
+	protocol2.control.type = PRO_CONTROL_APP;
+	protocol2.control.argument1 = argument1;
+	protocol2.control.argument2 = argument2;
+
+	protocol_build_datagram (protocol2, &datagram, &datagram_len);
+	teteco_net_send (teteco, datagram, datagram_len);
+	util_free (datagram);
+	
+	log_print ("[teteco]: Sent APP Control :%d %d", argument1, argument2);
+
+	return 1;
+	
 }
 
 int teteco_file_send (teteco_t* teteco, char* file_path) {

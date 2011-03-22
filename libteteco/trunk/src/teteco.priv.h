@@ -81,6 +81,7 @@ typedef enum {
 } teteco_file_transfer_status_t;
 
 typedef void(*chat_callback_ft)          (char*);
+typedef void(*app_control_callback_ft)   (int32_t, int32_t);
 typedef void(*status_callback_ft)        (teteco_status_t);
 typedef void(*file_transfer_callback_ft) (const char*, teteco_file_transfer_status_t, uint32_t, uint32_t);
 
@@ -140,10 +141,11 @@ typedef struct {
 ***********************/
 // TO BE USED BY THE LIBRARY
 
-void        teteco_set_status       (teteco_t* teteco, teteco_status_t status);
-void        teteco_chat_received    (teteco_t* teteco, char* entry);
-int         teteco_start_connection (teteco_t* teteco);
-int         teteco_send_helo        (teteco_t* teteco);
-teteco_t*   teteco_stop             (teteco_t* teteco);
+void        teteco_set_status       	(teteco_t* teteco, teteco_status_t status);
+void        teteco_chat_received    	(teteco_t* teteco, char* entry);
+void        teteco_control_app_received	(teteco_t* teteco, int32_t argument1, int32_t argument2);
+int         teteco_start_connection 	(teteco_t* teteco);
+int         teteco_send_helo        	(teteco_t* teteco);
+teteco_t*   teteco_stop             	(teteco_t* teteco);
 
 #endif

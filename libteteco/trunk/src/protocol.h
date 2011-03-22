@@ -52,12 +52,18 @@
 #define PRO_CONTROL_TYPE_SIZE         sizeof(PRO_CONTROL_TYPE_TYPE)
 
 #define PRO_CONTROL_HELO_SENDER         0x01
-#define PRO_CONTROL_IS_HELO_SENDER(a)   a&PRO_CONTROL_HELO_SENDER
-#define PRO_CONTROL_HELO_RECEIVER       0x02
-#define PRO_CONTROL_IS_HELO_RECEIVER(a) a&PRO_CONTROL_HELO_RECEIVER
+#define PRO_CONTROL_IS_HELO_SENDER(a)   a==PRO_CONTROL_HELO_SENDER
 
-#define PRO_CONTROL_BYE               0x04
+#define PRO_CONTROL_HELO_RECEIVER       0x02
+#define PRO_CONTROL_IS_HELO_RECEIVER(a) a==PRO_CONTROL_HELO_RECEIVER
+
+#define PRO_CONTROL_BYE               0x03
 #define PRO_CONTROL_IS_BYE(a)         a&PRO_CONTROL_BYE
+
+#define PRO_CONTROL_APP				  0x04
+#define PRO_CONTROL_IS_APP(a)         a==PRO_CONTROL_APP
+#define PRO_CONTROL_ARG_TYPE          int32_t
+#define PRO_CONTROL_ARG_SIZE          sizeof(PRO_CONTROL_ARG_TYPE)
 
 #define PRO_VOICE_SEQ_TYPE          uint16_t
 #define PRO_VOICE_SEQ_SIZE          sizeof(PRO_VOICE_SEQ_TYPE)
@@ -106,6 +112,8 @@ typedef struct {
     struct {
         uint8_t                     has;
         PRO_CONTROL_TYPE_TYPE       type;
+		PRO_CONTROL_ARG_TYPE        argument1;
+		PRO_CONTROL_ARG_TYPE        argument2;
     } control;
 
     struct {
@@ -145,7 +153,7 @@ typedef struct {
 
 } protocol_status_t;
 
-#define protocol_init  {0,{0,0,0},{0,0,0},{0,0},{0,0,0},{0,0},{0,0,0}}
+#define protocol_init  {0,{0,0,0},{0,0,0},{0,0,0,0},{0,0,0},{0,0},{0,0,0}}
 
 void       protocol_print          (protocol_t protocol);
 protocol_t protocol_parse_datagram (char* datagram, int datagram_len);

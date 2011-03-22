@@ -333,7 +333,7 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
                     log_print ("[receiver]: Unexpected control HELLO");
                 }
             }
-            else if (PRO_CONTROL_IS_BYE(protocol.control.type)) {
+            else if (PRO_CONTROL_IS_BYE (protocol.control.type)) {
                 if (teteco->status == TETECO_STATUS_CONNECTED) {
                     log_print ("[receiver]: BYE received");
                     bye_received = 1;
@@ -342,6 +342,9 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
                     log_print ("[receiver]: Unexpected control BYE");
                 }
             }
+			else if (PRO_CONTROL_IS_APP (protocol.control.type)) {
+				teteco_control_app_received (teteco, protocol.control.argument1, protocol.control.argument2);
+			}
         }
 
         if (protocol.voice_ack.has) {
@@ -891,7 +894,7 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
         char* file_path = NULL;
 
         #ifdef __WINDOWS__
-        asprintf (&file_path, "%s\%s", teteco->file_dir, file_name);
+        asprintf (&file_path, "%s\\%s", teteco->file_dir, file_name);
         #else
         asprintf (&file_path, "%s/%s", teteco->file_dir, file_name);
         #endif

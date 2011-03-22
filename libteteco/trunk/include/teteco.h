@@ -66,6 +66,10 @@
 
 #include <stdint.h>
 
+/** Reserved values for app control argument1 */
+#define TETECO_APP_CONTROL_SET_FILE 1 /**< Set the file sent in the position sent in argument2 in viewer */
+#define TETECO_APP_CONTROL_SET_PAGE 2 /**< Set the pages sent in argument2 in viewer */
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -149,6 +153,12 @@ typedef void(*log_callback_ft)           (char*);
 **/
 typedef void(*chat_callback_ft)          (char*);
 /**
+ * \typedef app_control_callback_ft
+ * \brief   Callback definition for receiving application control messages. 
+ * The arguments are the application control messages.
+**/
+typedef void(*app_control_callback_ft)   (int32_t, int32_t);
+/**
  * \typedef status_callback_ft
  * \brief   Callback definition to notifty status changes.
 **/
@@ -191,6 +201,18 @@ int         teteco_end         (void);
  */
 int         teteco_chat_send   (teteco_t* teteco, const char* comment);
 /**
+ * Sends a app control message
+ * 
+ * Used to send application control messages to the other peer
+ * @pre teteco struct is initialized and status is connected
+ * @post  the application control message is sent
+ * @param teteco A initialized teteco_t struct
+ * @param argument1 control message
+ * @param argument2 control message
+ * @return 1 if message was sent. 0 in other case
+ */
+int         teteco_app_control_send   (teteco_t* teteco, int32_t argument1, int32_t argument2);
+/**
  * Starts sending a file
  * 
  * Used to send a file to the other peer
@@ -221,6 +243,16 @@ int         teteco_set_log_callback           (log_callback_ft           log_cal
  * @return 1 callback was set. 0 in other case
  */
 int         teteco_set_chat_callback          (chat_callback_ft          chat_callback_ref);
+/**
+ * Sets the application control callback
+ * 
+ * Used to set the function to call when a application control message is received
+ * @pre none
+ * @post  the application control callback is set
+ * @param app_control_callback_ref the callback function
+ * @return 1 callback was set. 0 in other case
+ */
+int         teteco_set_app_control_callback          (app_control_callback_ft          app_control_callback_ref);
 /**
  * Sets the status callback
  * 
