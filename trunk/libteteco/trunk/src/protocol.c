@@ -57,6 +57,8 @@ protocol_t protocol_parse_datagram (char* datagram, int datagram_len) {
 
     protocol.control.has = 0;
     protocol.control.type = 0;
+	protocol.control.argument1 = 0;
+	protocol.control.argument2 = 0;
 
     protocol.chat.has = 0;
     protocol.chat.seq  = 0;
@@ -121,6 +123,10 @@ protocol_t protocol_parse_datagram (char* datagram, int datagram_len) {
         // Get control type
         memcpy (&protocol.control.type, &datagram[cursor], PRO_CONTROL_TYPE_SIZE);
         cursor+=PRO_CONTROL_TYPE_SIZE;
+		memcpy (&protocol.control.argument1, &datagram[cursor], PRO_CONTROL_ARG_SIZE);
+		cursor+=PRO_CONTROL_ARG_SIZE;
+		memcpy (&protocol.control.argument2, &datagram[cursor], PRO_CONTROL_ARG_SIZE);
+		cursor+=PRO_CONTROL_ARG_SIZE;
     }
 
     if (PRO_HAS_CHAT(protocol_type)) {
@@ -182,7 +188,7 @@ int protocol_build_datagram (protocol_t protocol, char** datagram, unsigned int 
     *datagram_len = PRO_TYPE_SIZE +
                     (protocol.voice.has ? PRO_VOICE_SEQ_SIZE + PRO_VOICE_SIZE_SIZE + protocol.voice.size : 0) +
                     (protocol.voice_ack.has ? PRO_VOICE_ACK_LAST_SIZE + PRO_VOICE_ACK_NUM_SIZE : 0) +
-                    (protocol.control.has ? PRO_CONTROL_TYPE_SIZE : 0) +
+                    (protocol.control.has ? PRO_CONTROL_TYPE_SIZE + PRO_CONTROL_ARG_SIZE + PRO_CONTROL_ARG_SIZE : 0) +
                     (protocol.chat.has ? PRO_CHAT_SEQ_SIZE + PRO_CHAT_SIZE_SIZE + protocol.chat.size: 0) +
                     (protocol.chat_ack.has ? PRO_CHAT_ACK_SEQ_SIZE : 0) +
                     (protocol.file.has ? PRO_FILE_TYPE_SIZE + PRO_FILE_PORT_TYPE_SIZE : 0);
@@ -226,6 +232,12 @@ int protocol_build_datagram (protocol_t protocol, char** datagram, unsigned int 
 
         memcpy (*datagram+cursor, &protocol.control.type, PRO_CONTROL_TYPE_SIZE);
         cursor += PRO_CONTROL_TYPE_SIZE;
+		
+		memcpy (*datagram+cursor, &protocol.control.argument1, PRO_CONTROL_ARG_SIZE);
+		cursor += PRO_CONTROL_ARG_SIZE;
+		
+		memcpy (*datagram+cursor, &protocol.control.argument2, PRO_CONTROL_ARG_SIZE);
+		cursor += PRO_CONTROL_ARG_SIZE;
 
     }
 
@@ -285,6 +297,8 @@ void protocol_print (protocol_t protocol) {
     log_print ("protocol.voice_ack.number_received = %u\n", protocol.voice_ack.number_received);
     log_print ("protocol.control.has = %u\n", protocol.control.has);
     log_print ("protocol.control.type = 0x%02X\n", protocol.control.type);
+	log_print ("protocol.control.arg1 = %d", protocol.control.argument1); 
+	log_print ("protocol.control.arg2 = %d", protocol.control.argument2); 
     log_print ("protocol.chat.has = %u\n", protocol.chat.has);
     log_print ("protocol.chat.seq = %u\n", protocol.chat.seq);
     log_print ("protocol.chat.size = %u\n", protocol.chat.size);

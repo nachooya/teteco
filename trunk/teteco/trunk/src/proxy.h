@@ -12,6 +12,8 @@ class Proxy : public QObject {
         void          StatusCallback        (int status )             { emit Status (status);}
         void          LogCallback           (char* entry)             {QString qentry(entry); emit Log  (qentry);}
         void          ChatCallback          (char* entry)             {QString qentry(entry); emit Chat (qentry);}
+		void          AppControlCallback    (int argument1,
+											 int argument2)		  	  {emit AppControl (argument1, argument2);}
         void          FileTransferCallback  (const char* filename, 
                                              int status,
                                              uint32_t file_size,
@@ -21,10 +23,11 @@ class Proxy : public QObject {
 
     signals:
 
-        void Status (int             status);
-        void Log    (QString         qentry);
-        void Chat   (QString         qentry);
-        void File   (QString filename, int status, int size, int transmitted);
+        void Status 	(int             status);
+        void Log    	(QString         qentry);
+        void Chat   	(QString         qentry);
+        void File   	(QString filename, int status, int size, int transmitted);
+		void AppControl (int argument1, int argument2);
 
     private:
 

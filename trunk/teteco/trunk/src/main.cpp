@@ -24,6 +24,12 @@ void StatusCallBack (teteco_status_t status) {
 
 }
 
+void AppControlCallBack (int32_t argument1, int32_t argument2) {
+
+	Proxy::singleton()->AppControlCallback (argument1, argument2);
+	
+}
+
 void FileTransferCallback (const char* filename, teteco_file_transfer_status_t status, uint32_t total_size, uint32_t transmitted) {
 
     static uint64_t previous = 0;
@@ -47,14 +53,13 @@ void FileTransferCallback (const char* filename, teteco_file_transfer_status_t s
 
 int main (int argc, char *argv[]) {
 
-	printf ("HOLA\n");
-
     QCoreApplication::setOrganizationName   ("TEDECO");
     QCoreApplication::setOrganizationDomain ("tedeco.fi.upm.es");
     QCoreApplication::setApplicationName    ("teteco");
 
     teteco_set_log_callback           (&LogCallBack);
     teteco_set_chat_callback          (&ChatCallBack);
+	teteco_set_app_control_callback   (&AppControlCallBack);
     teteco_set_status_callback        (&StatusCallBack);
     teteco_set_file_transfer_callback (&FileTransferCallback);
     teteco_init ();
@@ -77,10 +82,11 @@ int main (int argc, char *argv[]) {
 
     Interface *mainWin = new Interface();
 
-    QObject::connect(Proxy::singleton(), SIGNAL(Log(QString)),              mainWin, SLOT(LogAppend(QString)));
-    QObject::connect(Proxy::singleton(), SIGNAL(Chat(QString)),             mainWin, SLOT(ChatAppend(QString)));
-    QObject::connect(Proxy::singleton(), SIGNAL(Status(int)),               mainWin, SLOT(SetStatus(int)));
-    QObject::connect(Proxy::singleton(), SIGNAL(File(QString,int,int,int)), mainWin, SLOT(FileTransfer(QString,int,int,int)));
+    QObject::connect(Proxy::singleton(), SIGNAL(Log(QString)),              	mainWin, SLOT(LogAppend(QString)));
+    QObject::connect(Proxy::singleton(), SIGNAL(Chat(QString)),             	mainWin, SLOT(ChatAppend(QString)));
+    QObject::connect(Proxy::singleton(), SIGNAL(Status(int)),               	mainWin, SLOT(SetStatus(int)));
+    QObject::connect(Proxy::singleton(), SIGNAL(File(QString,int,int,int)), 	mainWin, SLOT(FileTransfer(QString,int,int,int)));
+	QObject::connect(Proxy::singleton(), SIGNAL(AppControl(int,int)), 	mainWin, SLOT(AppControlReceived(int, int)));
 
     mainWin->show();
 
