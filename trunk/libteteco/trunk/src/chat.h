@@ -28,23 +28,22 @@
 
 typedef struct chat_node {
 
-	char*       entry;
-    char*       comment;
+    char*       entry;
     uint16_t    size;
 	uint16_t    comment_number;
-	struct chat_node* next_entry;
+	struct chat_node* prev_entry;
 
 } chat_node_t;
 
 typedef struct chat_ack_node {
 	uint16_t	          ack_num;
-	struct chat_ack_node* next_ack;
+	struct chat_ack_node* prev_ack;
 } chat_ack_node_t;
 
 typedef struct {
 
-	void* first;
-	void* last;
+	void* head;
+	void* tail;
 	
 } linked_list_t;
 

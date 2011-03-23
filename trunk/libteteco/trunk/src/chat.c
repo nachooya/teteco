@@ -33,10 +33,10 @@ chat_data_t* chat_start (void) {
 
     chat_data_t* chat_data = util_malloc (sizeof(chat_data_t));
 
-	chat_data->chat_list.first = NULL;
-	chat_data->chat_list.last  = NULL;
-	chat_data->chat_ack_list.first = NULL;
-	chat_data->chat_ack_list.last  = NULL;
+	chat_data->chat_list.head = NULL;
+	chat_data->chat_list.tail  = NULL;
+	chat_data->chat_ack_list.head = NULL;
+	chat_data->chat_ack_list.tail  = NULL;
 
     chat_data->comment_seq   = 0;
     chat_data->last_recv_ack = 0;
@@ -48,21 +48,21 @@ chat_data_t* chat_stop (chat_data_t* chat_data) {
 
 	if (chat_data == NULL) return NULL;
 
-    chat_node_t* chat_node = chat_data->chat_list.first;
+    chat_node_t* chat_node = chat_data->chat_list.head;
 
     while (chat_node != NULL) {
-		chat_data->chat_list.first = ((chat_node_t*)(chat_data->chat_list.first))->next_entry;
-        util_free (chat_node->comment);
+		chat_data->chat_list.head = chat_node->prev_entry;
+        util_free (chat_node->entry);
         util_free (chat_node);
-        chat_node = chat_data->chat_list.first;
+        chat_node = chat_data->chat_list.head;
     }
 
-    chat_ack_node_t* chat_ack_node = chat_data->chat_ack_list.first;
+    chat_ack_node_t* chat_ack_node = chat_data->chat_ack_list.head;
 
     while (chat_ack_node != NULL) {
-		chat_data->chat_ack_list.first = ((chat_ack_node_t*)(chat_data->chat_ack_list.first))->next_ack;
+		chat_data->chat_ack_list.head = chat_ack_node->prev_ack;
         util_free (chat_ack_node);
-        chat_ack_node = chat_data->chat_ack_list.first;
+        chat_ack_node = chat_data->chat_ack_list.head;
     }
 
     util_free (chat_data);
@@ -98,18 +98,18 @@ int chat_add (chat_data_t* chat_data, const char* comment) {
 
         memcpy (chat_node->entry, next_to_write, now_write);
         chat_node->size = now_write;
-		chat_node->next_entry = NULL;
+		chat_node->prev_entry = NULL;
 
         bytes_to_write -= now_write;
-        next_to_write += now_write;
+        next_to_write  += now_write;
 		
-		if (chat_data->chat_list.first == NULL) {
-		    chat_data->chat_list.first = chat_node;
+		if (chat_data->chat_list.head == NULL) {
+		    chat_data->chat_list.head = chat_node;
 		}
 		else {
-			((chat_node_t*)(chat_data->chat_list.last))->next_entry = chat_node;
+			((chat_node_t*)(chat_data->chat_list.tail))->prev_entry = chat_node;
 		}
-		chat_data->chat_list.last = chat_node;
+		chat_data->chat_list.tail = chat_node;
 
     }
 
@@ -119,7 +119,7 @@ int chat_add (chat_data_t* chat_data, const char* comment) {
 
 chat_node_t* chat_get (chat_data_t* chat_data) {
 
-    chat_node_t* chat_node = chat_data->chat_list.first;
+    chat_node_t* chat_node = chat_data->chat_list.head;
 
     return chat_node;
 
@@ -127,12 +127,14 @@ chat_node_t* chat_get (chat_data_t* chat_data) {
 
 int chat_ack (chat_data_t* chat_data, uint16_t seq) {
 
-    chat_node_t* chat_node = chat_data->chat_list.first;
+    chat_node_t* chat_node = chat_data->chat_list.head;
 
     if (chat_node != NULL) {
-		chat_data->chat_list.first = ((chat_node_t*)(chat_data->chat_list.first))->next_entry;
-		if (chat_data->chat_list.first == NULL) chat_data->chat_list.last = NULL;
+		chat_data->chat_list.head = chat_node->prev_entry;
+		if (chat_data->chat_list.head == NULL) chat_data->chat_list.tail = NULL;
         chat_data->last_recv_ack = seq;
+		free (chat_node->entry);
+		free (chat_node);
         return 1;
     }
 
@@ -152,15 +154,15 @@ int chat_ack_add (chat_data_t* chat_data, uint16_t ack_num) {
     chat_ack_node_t* chat_ack_node = util_malloc (sizeof(chat_ack_node_t));
 
     chat_ack_node->ack_num = ack_num;
-	chat_ack_node->next_ack = NULL;
+	chat_ack_node->prev_ack = NULL;
 
-	if (chat_data->chat_ack_list.first == NULL) {
-		chat_data->chat_ack_list.first = chat_ack_node;
+	if (chat_data->chat_ack_list.head == NULL) {
+		chat_data->chat_ack_list.head = chat_ack_node;
 	}
 	else {
-		((chat_ack_node_t*)(chat_data->chat_ack_list.first))->next_ack = chat_ack_node;
+		((chat_ack_node_t*)(chat_data->chat_ack_list.tail))->prev_ack = chat_ack_node;
 	}
-	chat_data->chat_ack_list.last = chat_ack_node;
+	chat_data->chat_ack_list.tail = chat_ack_node;
 	
     return 1;
 
@@ -168,11 +170,12 @@ int chat_ack_add (chat_data_t* chat_data, uint16_t ack_num) {
 
 chat_ack_node_t* chat_ack_get (chat_data_t* chat_data) {
 
-    chat_ack_node_t* chat_ack_node = chat_data->chat_ack_list.first;
+    chat_ack_node_t* chat_ack_node = chat_data->chat_ack_list.head;
 
     if (chat_ack_node != NULL) {
-		chat_data->chat_ack_list.first = ((chat_ack_node_t*)(chat_data->chat_ack_list.first))->next_ack;
-		if (chat_data->chat_ack_list.first == NULL) chat_data->chat_ack_list.last = NULL;
+		chat_data->chat_ack_list.head = chat_ack_node->prev_ack;
+		if (chat_data->chat_ack_list.head == NULL) chat_data->chat_ack_list.tail = NULL;
+		free (chat_ack_node);
     }
 
     return chat_ack_node;
