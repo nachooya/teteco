@@ -65,6 +65,9 @@ class Interface : public QMainWindow, private Ui::MainWindow {
         void AddCurrentBookMark (void);
         void About              (void);
         void ViewerVisible      (bool);
+		
+	signals:
+		void Disconnected 		(bool);
 
 };
 

@@ -337,6 +337,7 @@ void Interface::SetStatus (int status) {
 //    static QString client_local_port = lineEdit_LocalPort->text();
 
     if (status == TETECO_STATUS_CONNECTED) {
+		emit Disconnected (false);
         statisticsTimer.start();
         audioLevelTimer.start();
         netLevelTimer.start();
@@ -365,18 +366,20 @@ void Interface::SetStatus (int status) {
         pushButton_ChatSend ->setEnabled (false);
         actionSendFile      ->setEnabled (false);
         buttonServer        ->setEnabled (true);
-
+		lineEdit_Remote     ->setEnabled (false);
+		
         if (status == TETECO_STATUS_WAITING) {
+			emit Disconnected (false);
             labelStatus->setText ("<font color='blue'>WAITING</font>");
         }
         else if (status == TETECO_STATUS_CONNECTING) {
+			emit Disconnected (false);
             labelStatus->setText ("<font color='yellow'>CONNECTING</font>");
             pushButton_Connect->setText ("Disconnect");
         }
         else {
-
+			emit Disconnected (true);
             if (teteco != NULL) teteco = teteco_stop (teteco);
-
             connected = false;
             pushButton_Connect->setText   ("Connect");
             actionPreferences->setEnabled (true);
@@ -517,8 +520,8 @@ void Interface::SendFile (void) {
 
 void Interface::ViewerVisible (bool visible) {
 
-    splitter->setVisible (visible);
-    actionViewer->setChecked          (visible);
+    splitter->setVisible 		(visible);
+    actionViewer->setChecked    (visible);
 //     scrollArea_Viewer->setVisible     (visible);
 //     treeWidget_Files->setVisible      (visible);
 
@@ -653,15 +656,17 @@ void Interface::FileSelected (QTreeWidgetItem* current, QTreeWidgetItem* previou
 
 void Interface::AddBookmark (QString name, QString url) {
 
-    QMenu*   menuBookmark  = new QMenu (menuBookmarks);
+    QMenu*   menuBookmark  = new QMenu   (menuBookmarks);
     QAction* actionDelete  = new QAction (menuBookmark);
     QAction* actionConnect = new QAction (menuBookmark);
-    //menuBookmark->setObjectName(QString::fromUtf8("Prueba"));
+		
+	QObject::connect (this, SIGNAL(Disconnected(bool)), actionConnect, SLOT(setEnabled()));
+	
     actionDelete->setText  ("Delete");
     actionConnect->setText ("Connect");
 
-    menuBookmark->setTitle (name);
-    menuBookmark->setProperty ("URL", QString (url));
+    menuBookmark->setTitle      (name);
+    menuBookmark->setProperty   ("URL", QString (url));
     menuBookmark->addAction     (actionConnect);
     menuBookmark->addAction     (actionDelete);
     menuBookmark->addSeparator  ();
