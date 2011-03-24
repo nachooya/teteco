@@ -15,6 +15,7 @@ LIBS        += ../../libteteco/trunk/src/teteco.a \
 			   
 INCLUDEPATH += ../../libteteco/trunk/include/ ../libs/poppler-0.16.3/qt4/src/ ../libs/qwt-5.2.1/src/
 RESOURCES   += src/teteco.qrc
+RC_FILE     = teteco.rc
 QMAKE_CXXFLAGS += -D__WINDOWS__ -DQT_NO_DEBUG -U_WIN32 -UPOPPLER_QT4_EXPORT
 
 ##QTPLUGIN     += xml
