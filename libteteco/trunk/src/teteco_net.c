@@ -342,9 +342,19 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
                     log_print ("[receiver]: Unexpected control BYE");
                 }
             }
-			else if (PRO_CONTROL_IS_APP (protocol.control.type)) {
-				teteco_control_app_received (teteco, protocol.control.argument1, protocol.control.argument2);
-			}
+            else if (PRO_CONTROL_IS_APP (protocol.control.type)) {
+                teteco_control_app_received (teteco, protocol.control.argument1, protocol.control.argument2);
+            }
+            char*        datagram = NULL;
+            unsigned int datagram_len = 0;
+
+            protocol_t protocol2 = protocol_init;
+            protocol2.control.has = 1;
+            protocol2.control.type = PRO_CONTROL_ACK;
+            protocol2.control.seq  = protocol.control.seq;
+            protocol_build_datagram (protocol2, &datagram, &datagram_len);
+            teteco_net_send (teteco, datagram, datagram_len);
+            util_free (datagram);
         }
 
         if (protocol.voice_ack.has) {
@@ -481,8 +491,8 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
             protocol.chat.has = 1;
             protocol.chat.seq  = chat_node->comment_number;
             protocol.chat.size = chat_node->size;
-            log_print ("[sender]: Chat entry: seq:%d size:%d comment:%s", chat_node->comment_number, chat_node->size, chat_node->comment);
-            memcpy (&protocol.chat.payload, chat_node->comment, chat_node->size);
+            log_print ("[sender]: Chat entry: seq:%d size:%d comment:%s", chat_node->comment_number, chat_node->size, chat_node->entry);
+            memcpy (&protocol.chat.payload, chat_node->entry, chat_node->size);
         }
 
         // Get Chat ack
@@ -538,8 +548,6 @@ int teteco_net_file_listen (teteco_t* teteco, int *local_port) {
         log_print ("[teteco_net]: Error in socket: %m");
         return 0;
     }
-	
-	 
 
     if ( 0 > bind (sd_listen, (const struct sockaddr*)&local_address_tcp_in, sizeof (struct sockaddr_in))) {
         log_print ("[teteco_net]: Error on bind: %m");
@@ -685,7 +693,7 @@ void teteco_net_file_send_callback (int sd, short event, void *teteco_ref) {
         if ((teteco->fd = fopen (teteco->file, "rb")) == NULL) {
             log_print ("[teteco_net]: Error opening file: %s\n", teteco->file);
             file_transfer_callback (teteco->file, TETECO_FILE_TRANSFER_END, 0, 0);
-			return;
+            return;
         }
 
         struct stat st;
@@ -905,7 +913,7 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
 
         if ((teteco->fd = fopen (file_path, "wb")) == NULL) {
             log_print ("[teteco_net]: Error opening file: %s\n", file_path);
-			if (teteco->tcp_read_event != NULL) {
+            if (teteco->tcp_read_event != NULL) {
                 event_del  (teteco->tcp_read_event);
                 event_free (teteco->tcp_read_event);
                 teteco->tcp_read_event = NULL;

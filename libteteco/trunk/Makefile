@@ -16,7 +16,7 @@ SOURCES=src/teteco_net.c \
         src/teteco.c
 
 OBJECTS=$(SOURCES:.c=.o)
-LIBRARY=src/libteteco.so.1.0
+LIBRARY=src/libteteco.so.1.2
 
 
 all: $(SOURCES) $(LIBRARY)

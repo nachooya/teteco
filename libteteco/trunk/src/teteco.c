@@ -67,7 +67,7 @@ void chat_callback_default (char* entry) {
 
 void app_control_callback_default (int32_t argument1, int32_t argument2) {
 
-	printf ("[app_control]: Received: %d - %d\n", argument1, argument2);
+    printf ("[app_control]: Received: %d - %d\n", argument1, argument2);
 	
 }
 
@@ -146,12 +146,30 @@ int frame_fun_record (int size, int16_t *buffer, void* teteco_ref) {
 
 }
 
+int teteco_send_control (teteco_t* teteco, protocol_t protocol) {
+
+    char*        datagram     = NULL;
+    unsigned int datagram_len = 0;
+    int          result       = 1;
+
+    protocol.control.seq = teteco->pending_control_ack++;
+
+    protocol_build_datagram (protocol, &datagram, &datagram_len);
+
+    if (-1 == teteco_net_send (teteco, datagram, datagram_len)) {
+        result = 0;
+    }
+    else {
+        result = 1;
+    }
+    util_free (datagram);
+    return result;
+}
+
 int teteco_send_helo (teteco_t* teteco) {
 
     if (teteco == NULL) return 0;
 
-    char*           datagram        = NULL;
-    unsigned int    datagram_len    = 0;
     protocol_t      protocol_helo   = protocol_init;
 
     protocol_helo.control.has = 1;
@@ -160,16 +178,9 @@ int teteco_send_helo (teteco_t* teteco) {
                                  teteco->audio_mode == TETECO_AUDIO_SENDER   ? PRO_CONTROL_HELO_SENDER:
                                  PRO_CONTROL_HELO_RECEIVER;
 
-    protocol_print (protocol_helo);
-    protocol_build_datagram (protocol_helo, &datagram, &datagram_len);
+    int result = teteco_send_control (teteco, protocol_helo);
 
-    if (-1 == teteco_net_send (teteco, datagram, datagram_len)) {
-        util_free (datagram);
-        return 0;
-    }
-    util_free (datagram);
-
-    return 1;
+    return result;
 
 }
 
@@ -258,8 +269,8 @@ void teteco_chat_received (teteco_t* teteco, char* entry) {
 
 void teteco_control_app_received (teteco_t* teteco, int32_t argument1, int32_t argument2) {
 
-	log_print ("[teteco]: Received App control: %d - %d", argument1, argument2);
-	(app_control_callback) (argument1, argument2);
+    log_print ("[teteco]: Received App control: %d - %d", argument1, argument2);
+    (app_control_callback) (argument1, argument2);
 
 }
 
@@ -393,8 +404,8 @@ int teteco_set_file_transfer_callback (file_transfer_callback_ft file_transfer_c
 int teteco_init () {
 
 #ifdef __WINDOWS__
-	pthread_win32_process_attach_np();
-	WSADATA wsaData;
+    pthread_win32_process_attach_np();
+    WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2,0), &wsaData) != 0) {
         log_print ("WSAStartup failed.\n");
         return 0;
@@ -405,39 +416,33 @@ int teteco_init () {
 
     if (error == paNoError) {
         log_print ("[teteco]: PortAudio version= %s - %d", Pa_GetVersionText(), Pa_GetVersion());
-		event_base = event_base_new ();
+        event_base = event_base_new ();
         return 1;
     }
     else {
         log_print ("[teteco]: Error initializing PortAudio: %s", Pa_GetErrorText (error));
         return 0;
     }
-	
-	
-
 }
 
 int teteco_end (void) {
 
 #ifdef __WINDOWS__
-	WSACleanup();
-	pthread_win32_process_detach_np();
+    WSACleanup();
+    pthread_win32_process_detach_np();
 #endif
 
     PaError error = Pa_Terminate();
 
     if (error == paNoError) {
         log_print ("[teteco]: Stopped");
-
         event_base_free (event_base);
-		
         return 1;
     }
     else {
         log_print ("[audio]: Error finishing PortAudio: %s", Pa_GetErrorText (error));
         return -1;
     }
-
 }
 
 
@@ -478,6 +483,8 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->current_db       = 0.0f;
         teteco->speex_state      = NULL;
         teteco->audio            = NULL;
+        teteco->pending_file_ack = 0;
+        teteco->pending_control_ack = 0;
 
 #ifdef __LINUX__
         teteco->thread_main      = 0;
@@ -502,8 +509,8 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->max_transfer_rate = 0;
         teteco->local_address_len = sizeof (struct sockaddr_in);
         teteco->remote_address_len = sizeof (struct sockaddr_in);
-		
-		teteco->chat_data        = chat_start ();
+
+        teteco->chat_data        = chat_start ();
 
         teteco->enc_speex_band   = (enc_speex_band==TETECO_SPEEX_NB)?ENC_SPEEX_NB:
                                    (enc_speex_band==TETECO_SPEEX_WB)?ENC_SPEEX_WB:
@@ -633,29 +640,29 @@ int teteco_chat_send (teteco_t* teteco, const char* comment) {
 
 int teteco_app_control_send (teteco_t* teteco, int32_t argument1, int32_t argument2) {
 
-	char*        datagram = NULL;
-	unsigned int datagram_len = 0;
+    protocol_t protocol2 = protocol_init;
 
-	protocol_t protocol2 = protocol_init;
-	protocol2.control.has = 1;
-	protocol2.control.type = PRO_CONTROL_APP;
-	protocol2.control.argument1 = argument1;
-	protocol2.control.argument2 = argument2;
+    protocol2.control.has = 1;
+    protocol2.control.type = PRO_CONTROL_APP;
+    protocol2.control.argument1 = argument1;
+    protocol2.control.argument2 = argument2;
 
-	protocol_build_datagram (protocol2, &datagram, &datagram_len);
-	teteco_net_send (teteco, datagram, datagram_len);
-	util_free (datagram);
-	
-	log_print ("[teteco]: Sent APP Control :%d %d", argument1, argument2);
+    int result = teteco_send_control (teteco, protocol2);
 
-	return 1;
-	
+    log_print ("[teteco]: Sent APP Control :%d %d", argument1, argument2);
+
+    return result;
+
 }
 
 int teteco_file_send (teteco_t* teteco, char* file_path) {
 
     if (teteco == NULL) {
         log_print ("[tedeco]: On file send: teteco not initialized");
+        return 0;
+    }
+    else if (teteco->pending_file_ack%2 == 1) {
+        log_print ("[tedeco]: On file send: expecting ack");
         return 0;
     }
     else if (teteco->audio_mode != TETECO_AUDIO_SENDER) {
@@ -683,6 +690,7 @@ int teteco_file_send (teteco_t* teteco, char* file_path) {
         protocol_build_datagram (protocol2, &datagram, &datagram_len);
         teteco_net_send (teteco, datagram, datagram_len);
         util_free (datagram);
+        teteco->pending_file_ack++;
     }
     else {
         log_print ("[tedeco]: On chat send: Teteco not connected");
