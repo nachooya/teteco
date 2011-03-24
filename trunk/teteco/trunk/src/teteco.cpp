@@ -43,36 +43,30 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
 
     setupUi (this);
 
-    ViewerVisible (false);
-	
-	configurationWindow = new ConfigurationWindow ();
-	statisticsWindow    = new StatisticsWindow ();
-	tranferring         = new QLabel (statusBar());
-	labelStatus         = new QLabel (statusBar());
-	progressBar_Audio   = new QProgressBar (statusBar());
+    configurationWindow = new ConfigurationWindow ();
+    statisticsWindow    = new StatisticsWindow ();
+    tranferring         = new QLabel (statusBar());
+    labelStatus         = new QLabel (statusBar());
+    progressBar_Audio   = new QProgressBar (statusBar());
 
     buttonSendFile  = new QPushButton  (QString ("Send File"),  toolBar);
     buttonServer    = new QPushButton  (QString ("Server Mode"),  toolBar);
-    //QPushButton* buttonDirection = new QPushButton  (QString ("Sender"),  toolBar);
-
     buttonServer->setCheckable    (true);
-    buttonSendFile->setEnabled    (false);
-    //buttonDirection->setCheckable (true);
 
-    toolBar->addWidget (buttonServer);
-    actionSendFile  = toolBar->addWidget (buttonSendFile);
-    toolBar->insertSeparator (actionSendFile);
-    //QAction* actionDirection = toolBar->addWidget (buttonDirection);
+                      toolBar->addWidget       (buttonServer);
+    actionSendFile  = toolBar->addWidget       (buttonSendFile);
+                      toolBar->insertSeparator (actionSendFile);
+
 
     QSizePolicy sizePolicy1(QSizePolicy::Fixed, QSizePolicy::Expanding);
     sizePolicy1.setHorizontalStretch(0);
     sizePolicy1.setVerticalStretch(0);
     sizePolicy1.setHeightForWidth(progressBar_Audio->sizePolicy().hasHeightForWidth());
 
-	
-	progressBar_Audio->setStyleSheet("QProgressBar {text-align: center; }"
-									 "QProgressBar::chunk { background: green; }"); 
-    progressBar_Audio->setEnabled(false);
+
+    progressBar_Audio->setStyleSheet("QProgressBar {text-align: center; }"
+                                     "QProgressBar::chunk { background: green; }"); 
+
     progressBar_Audio->setSizePolicy(sizePolicy1);
     progressBar_Audio->setMinimumSize(QSize(100, 21));
     progressBar_Audio->setMaximumSize(QSize(100, 21));
@@ -83,22 +77,14 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
     progressBar_Audio->setInvertedAppearance(false);
     progressBar_Audio->setFormat(QApplication::translate("MainWindow", "AUDIO METER", 0, QApplication::UnicodeUTF8));
 
-    labelStatus->setText ("<font color='red'>NO CONNECTED</font>");
-
     statusBar()->addWidget (labelStatus, 1);
     statusBar()->addWidget (progressBar_Audio, 0);
-
-    textEdit_Log->setVisible (false);
 
     statisticsTimer.setInterval  (1000);
     audioLevelTimer.setInterval    (40);
     netLevelTimer.setInterval    (1000);
 
-    QLabel* blackLabel = new QLabel (this);
-    blackLabel->setStyleSheet("QLabel { background-color : black}");
-    scrollArea_Viewer->setWidget (blackLabel);
-
-    DocumentControlWidget->setVisible (false);
+    textEdit_Log->setVisible (false);
 
     // Read bookmarks
 
@@ -110,6 +96,8 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
         AddBookmark (BookmarkIterator.key(), BookmarkIterator.value().toString());
     }
 
+    setClientDisconnected();
+
 
     QObject::connect(actionPreferences,     SIGNAL(triggered()),     configurationWindow,  SLOT(show()));
     QObject::connect(actionExit,            SIGNAL(triggered()),     this,                 SLOT(close()));
@@ -120,16 +108,111 @@ Interface::Interface (QMainWindow *parent) : QMainWindow (parent) {
     QObject::connect(pushButton_ChatSend,   SIGNAL(released()),      this,                 SLOT(ChatSend()));
     QObject::connect(&statisticsTimer,      SIGNAL(timeout()),       this,                 SLOT(UpdateStatistics()));
     QObject::connect(&audioLevelTimer,      SIGNAL(timeout()),       this,                 SLOT(AudioLevel()));
-    //QObject::connect(&netLevelTimer,        SIGNAL(timeout()),       this,                 SLOT(NetLevel()));
     QObject::connect(buttonServer,          SIGNAL(toggled(bool)),   this,                 SLOT(Server_Listen(bool)));
     QObject::connect(buttonSendFile,        SIGNAL(released()),      this,                 SLOT(SendFile()));
     QObject::connect(actionAddCurrent,      SIGNAL(triggered()),     this,                 SLOT(AddCurrentBookMark()));
     QObject::connect(actionAbout,           SIGNAL(triggered()),     this,                 SLOT(About()));
     QObject::connect(pushButton_OpenFolder, SIGNAL(clicked()),       this,                 SLOT(OpenFile()));
-
-    QObject::connect(treeWidget_Files,      SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),this, SLOT (FileSelected(QTreeWidgetItem*,QTreeWidgetItem*)));
+    QObject::connect(treeWidget_Files,      SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),
+                     this, SLOT (FileSelected(QTreeWidgetItem*,QTreeWidgetItem*)));
 
 }
+
+void Interface::setClientDisconnected (void) {
+
+    actionSendFile     ->setEnabled (false);
+    buttonSendFile     ->setEnabled (false);
+    actionPreferences  ->setEnabled (true);
+    lineEdit_Remote    ->setEnabled (true);
+    pushButton_Connect ->setEnabled (true);
+
+    labelStatus        ->setText ("<font color='red'>NO CONNECTED</font>");
+    pushButton_Connect ->setText ("Connect");
+    buttonServer       ->setText ("Server Mode");
+
+    progressBar_Audio  ->setValue (0);
+
+    // File navigator
+    NewTreeWidgetFiles();
+    treeWidget_Files->setEnabled (false);
+    pushButton_OpenFolder->setVisible (true);
+    QTreeWidgetItem *FilesHeader = treeWidget_Files->headerItem();
+    FilesHeader->setText (0, QApplication::translate("MainWindow", "Received Files", 0, QApplication::UnicodeUTF8));
+
+    // Viewer
+    ViewerVisible (false);
+    blackLabel = new QLabel (this);
+    blackLabel->setStyleSheet("QLabel { background-color : black}");
+    scrollArea_Viewer->setWidget (blackLabel);
+    DocumentControlWidget->setVisible (false);
+
+    emit Disconnected (true);
+
+}
+
+void Interface::setServerListening (void) {
+
+    lineEdit_Remote    ->setText    ("teteco://");
+    buttonServer       ->setText    ("Stop Server");
+    actionPreferences  ->setEnabled (false);
+    lineEdit_Remote    ->setEnabled (false);
+    pushButton_Connect ->setEnabled (false);
+    actionSendFile     ->setEnabled (false);
+    buttonSendFile     ->setEnabled (false);
+
+    progressBar_Audio  ->setValue (0);
+
+    //File navigator
+    NewTreeWidgetFiles();
+    treeWidget_Files->setEnabled (true);
+    pushButton_OpenFolder->setVisible (false);
+    QTreeWidgetItem *FilesHeader = treeWidget_Files->headerItem();
+    FilesHeader->setText(0, QApplication::translate("MainWindow", "Sent Files", 0, QApplication::UnicodeUTF8));
+
+    // Viewer
+    ViewerVisible (false);
+    blackLabel = new QLabel (this);
+    blackLabel->setStyleSheet("QLabel { background-color : black}");
+    scrollArea_Viewer->setWidget (blackLabel);
+    DocumentControlWidget->setVisible (false);
+
+}
+
+
+void Interface::setClientConnected (void) {
+
+    pushButton_Connect  ->setText ("Disconnect");
+    labelStatus         ->setText ("<font color='green'>CONNECTED</font>");
+
+    pushButton_Connect  ->setEnabled (true);
+    textEdit_ChatInput  ->setEnabled (true);
+    pushButton_ChatSend ->setEnabled (true);
+    actionPreferences   ->setEnabled (false);
+    buttonServer        ->setEnabled (false);
+
+}
+
+
+void Interface::setServerConnected (void) {
+
+    char* address = teteco_get_remote_address (teteco);
+    QString remoteAddress (address);
+    free (address);
+
+    pushButton_Connect  ->setText ("Disconnect");
+    labelStatus         ->setText ("<font color='green'>CONNECTED</font>");
+    lineEdit_Remote     ->setText (QString ("teteco://"+remoteAddress));
+
+    actionSendFile       ->setEnabled (true);
+    pushButton_Connect   ->setEnabled (true);
+    textEdit_ChatInput   ->setEnabled (true);
+    pushButton_ChatSend  ->setEnabled (true);
+    actionPreferences    ->setEnabled (false);
+    buttonServer         ->setEnabled (false);
+
+}
+
+
 
 void Interface::LogAppend (QString entry) {
 
@@ -219,12 +302,8 @@ void Interface::NetLevel (void) {
     uint32_t    packets_expected = teteco_get_packets_expected (teteco);
     uint32_t    packets_received = teteco_get_packets_received (teteco);
 
-    //loat percent = (packets_expected-last_expected) * 100.0 / (packets_received-last_received);
-
     last_expected = packets_expected;
     last_received = packets_received;
-
-    //progressBar_Net.setValue (percent);
 
 }
 
@@ -246,17 +325,14 @@ void Interface::Connect (void) {
         remote.setUrl  (lineEdit_Remote->text(), QUrl::StrictMode);
 
         if (remote.isRelative()) {
-                lineEdit_Remote->setText("teteco://"+lineEdit_Remote->text());
-                remote.setUrl  (lineEdit_Remote->text(), QUrl::StrictMode);
+            lineEdit_Remote->setText ("teteco://" + lineEdit_Remote->text());
+            remote.setUrl  (lineEdit_Remote->text(), QUrl::StrictMode);
         }
 
         if (!remote.isValid() || remote.scheme() != "teteco" || remote.host().isEmpty()) {
-
             textEdit_Log->append ("Error: " + remote.errorString() + "URL:"+remote.toString());
         }
         else {
-		
-			treeWidget_Files->setEnabled (false);
 
             teteco = teteco_start   (TETECO_NET_CLIENT,
                                      0,
@@ -277,15 +353,7 @@ void Interface::Server_Listen (bool toggled) {
 
     if (toggled) {
 
-        lineEdit_Remote->setEnabled    (false);
-        pushButton_Connect->setEnabled (false);
-        buttonServer->setText ("Stop Server");
-        pushButton_OpenFolder->setVisible (false);
-
-        QTreeWidgetItem *FilesHeader = treeWidget_Files->headerItem();
-        FilesHeader->setText(0, QApplication::translate("MainWindow", "Sent Files", 0, QApplication::UnicodeUTF8));
-
-		treeWidget_Files->setEnabled (true);
+        setServerListening ();
 
         teteco = teteco_start   (TETECO_NET_SERVER,
                                  configurationWindow->lineEdit_ServerPort->text().toUInt(),
@@ -299,14 +367,7 @@ void Interface::Server_Listen (bool toggled) {
                                  qPrintable(configurationWindow->lineEdit_Directory->text()));
     }
     else {
-
-        QTreeWidgetItem *FilesHeader = treeWidget_Files->headerItem();
-        FilesHeader->setText(0, QApplication::translate("MainWindow", "Received Files", 0, QApplication::UnicodeUTF8));
-
-        lineEdit_Remote->setEnabled    (true);
-        pushButton_Connect->setEnabled (true);
-        pushButton_OpenFolder->setVisible (true);
-        buttonServer->setText ("Server Mode");
+        setClientDisconnected ();
 
         if (teteco != NULL) {
             teteco = teteco_stop (teteco);
@@ -334,31 +395,16 @@ void Interface::SetStatus (int status) {
     LogAppend (QString("[interface]: STATUS IS :"+QString::number(status)));
     bool connected = true;
 
-//    static QString client_local_port = lineEdit_LocalPort->text();
-
     if (status == TETECO_STATUS_CONNECTED) {
-		emit Disconnected (false);
+        emit Disconnected (false);
         statisticsTimer.start();
         audioLevelTimer.start();
         netLevelTimer.start();
 
-        labelStatus->setText ("<font color='green'>CONNECTED</font>");
-
-        pushButton_Connect->setText ("Disconnect");
-
-        pushButton_Connect->setEnabled (true);
-        textEdit_ChatInput->setEnabled (true);
-        pushButton_ChatSend->setEnabled (true);
-        actionPreferences->setEnabled (false);
-        buttonServer->setEnabled (false);
-
-        if (buttonServer->isChecked()) {
-            char* address = teteco_get_remote_address (teteco);
-            QString remoteAddress (address);
-            free (address);
-            lineEdit_Remote->setText (QString ("teteco://"+remoteAddress));
-            actionSendFile->setEnabled (true);
-        }
+        if (buttonServer->isChecked())
+            setServerConnected();
+        else 
+            setClientConnected();
 
     }
     else {
@@ -366,38 +412,30 @@ void Interface::SetStatus (int status) {
         pushButton_ChatSend ->setEnabled (false);
         actionSendFile      ->setEnabled (false);
         buttonServer        ->setEnabled (true);
-		lineEdit_Remote     ->setEnabled (false);
-		
+        lineEdit_Remote     ->setEnabled (false);
+
         if (status == TETECO_STATUS_WAITING) {
-			emit Disconnected (false);
+            emit Disconnected (false);
             labelStatus->setText ("<font color='blue'>WAITING</font>");
         }
         else if (status == TETECO_STATUS_CONNECTING) {
-			emit Disconnected (false);
+            emit Disconnected (false);
             labelStatus->setText ("<font color='yellow'>CONNECTING</font>");
             pushButton_Connect->setText ("Disconnect");
         }
         else {
-			emit Disconnected (true);
+            emit Disconnected (true);
             if (teteco != NULL) teteco = teteco_stop (teteco);
             connected = false;
-            pushButton_Connect->setText   ("Connect");
-            actionPreferences->setEnabled (true);
-            actionSendFile->setEnabled    (false);
             statisticsTimer.stop();
             audioLevelTimer.stop();
             netLevelTimer.stop();
-			NewTreeWidgetFiles();
-            //free (teteco);
-            //teteco = NULL;
-
-            labelStatus->setText ("<font color='red'>NO CONNECTED</font>");
-            progressBar_Audio->setValue (0);
-            //progressBar_Net.setValue (0);
 
             if (buttonServer->isChecked()) {
-                lineEdit_Remote->setText (QString ("teteco://"));
                 Server_Listen (true);
+            }
+            else {
+                setClientDisconnected();
             }
 
             if (status == TETECO_STATUS_TIMEDOUT) {
@@ -407,22 +445,7 @@ void Interface::SetStatus (int status) {
         }
     }
 
-    progressBar_Audio->setEnabled (connected);
-    //progressBar_Net.setEnabled   (connected);
-
 }
-
-void Interface::SetNetMode (bool server) {
-
-    if (server) {
-        pushButton_Connect->setText ("Start");
-    }
-    else {
-        pushButton_Connect->setText ("Connect");
-    }
-
-}
-
 
 void Interface::FileTransfer (QString filename, int status , int size, int transmitted) {
 
@@ -443,10 +466,10 @@ void Interface::FileTransfer (QString filename, int status , int size, int trans
         progressBar_File->setMinimum(0);
         progressBar_File->setMaximum (100);
         progressBar_File->setValue(0);
-		progressBar_File->setStyleSheet("QProgressBar {text-align: left; color: white;} " 
-										"QProgressBar::disabled {color: white;} " 		
-										"QProgressBar::chunk { background: grey; }"); 
-		
+        progressBar_File->setStyleSheet("QProgressBar {text-align: left; color: white;} " 
+                                        "QProgressBar::disabled {color: white;} " 		
+                                        "QProgressBar::chunk { background: grey; }"); 
+
         treeWidget_Files->insertTopLevelItem (index, file);
         treeWidget_Files->setItemWidget      (file, 0, progressBar_File);
 
@@ -455,7 +478,7 @@ void Interface::FileTransfer (QString filename, int status , int size, int trans
         tranferring->setText ("");
         statusBar()->insertWidget(1, tranferring);
         ViewerVisible (true);
-		
+
         if (status == TETECO_FILE_TRANSFER_SENDING) {
             tranferring->setText ("Sending File "+QString::number(teteco_get_transfer_rate(teteco)/1024)+" KB/s");
         }
@@ -476,11 +499,11 @@ void Interface::FileTransfer (QString filename, int status , int size, int trans
     }
 
     if (status == TETECO_FILE_TRANSFER_END) {
-	
-		if (buttonServer->isChecked()) buttonSendFile->setEnabled (true);
-	
+
+        if (buttonServer->isChecked()) buttonSendFile->setEnabled (true);
+
         QProgressBar* progressBar_File = (QProgressBar*) treeWidget_Files->itemWidget(treeWidget_Files->topLevelItem (index), 0);
-        
+
 
         if (size != transmitted) {
             QFileInfo filePath (filename);
@@ -493,9 +516,9 @@ void Interface::FileTransfer (QString filename, int status , int size, int trans
             QFileInfo filePath (filename);
             progressBar_File->setValue  (100);
             progressBar_File->setFormat (filePath.fileName());
-			progressBar_File->setStyleSheet("QProgressBar {text-align: left; color: white;} " 
-											"QProgressBar::disabled {color: white;} "
-											"QProgressBar::chunk { background: green; }"); 
+            progressBar_File->setStyleSheet("QProgressBar {text-align: left; color: white;} " 
+                                            "QProgressBar::disabled {color: white;} "
+                                            "QProgressBar::chunk { background: green; }"); 
         }
         statusBar()->removeWidget(tranferring);
         transferring = false;
@@ -520,10 +543,8 @@ void Interface::SendFile (void) {
 
 void Interface::ViewerVisible (bool visible) {
 
-    splitter->setVisible 		(visible);
+    splitter->setVisible        (visible);
     actionViewer->setChecked    (visible);
-//     scrollArea_Viewer->setVisible     (visible);
-//     treeWidget_Files->setVisible      (visible);
 
 }
 
@@ -566,16 +587,16 @@ void Interface::ViewFile (QString FilePath) {
             QObject::connect (pushButton_Prev, SIGNAL (clicked()),            Document,     SLOT (prevPage()));
             QObject::connect (pushButton_Next, SIGNAL (clicked()),            Document,     SLOT (nextPage()));
             QObject::connect (Document,        SIGNAL (pageChanged(QString)), label_Pages,  SLOT (setText(QString)));
-			QObject::connect (Document,        SIGNAL (pageChanged(int)),     this,         SLOT (SendPageChanged(int)));
+            QObject::connect (Document,        SIGNAL (pageChanged(int)),     this,         SLOT (SendPageChanged(int)));
             QObject::connect (comboBox_Scale,  SIGNAL (currentIndexChanged(QString)), Document, SLOT (setScale(QString)));
 
             scrollArea_Viewer->setWidget (Document);
-			Document->show();
-			Document->setVisible(true);
+            Document->show();
+            Document->setVisible(true);
             DocumentControlWidget->setVisible (true);
-			
-			pushButton_Prev->setVisible (buttonServer->isChecked());
-			pushButton_Next->setVisible (buttonServer->isChecked());
+
+            pushButton_Prev->setVisible (buttonServer->isChecked());
+            pushButton_Next->setVisible (buttonServer->isChecked());
 
             opened = true;
         }
@@ -631,25 +652,25 @@ void Interface::FileSelected (QTreeWidgetItem* current, QTreeWidgetItem* previou
 
     QProgressBar* progressBar_File_curr = (QProgressBar*) treeWidget_Files->itemWidget(current, 0);
 
-	progressBar_File_curr->setStyleSheet("QProgressBar {text-align: left; color: white; }" 
-										 "QProgressBar::disabled {color: white;} "
-										 "QProgressBar::chunk { background: green; }"); 
-		
+    progressBar_File_curr->setStyleSheet("QProgressBar {text-align: left; color: white; }" 
+                                         "QProgressBar::disabled {color: white;} "
+                                         "QProgressBar::chunk { background: green; }"); 
+
     if (previous != NULL) {
 
         QProgressBar* progressBar_File_prev = (QProgressBar*) treeWidget_Files->itemWidget (previous, 0);
-		progressBar_File_prev->setStyleSheet("QProgressBar {text-align: left; color: white; }" 
-										     "QProgressBar::disabled {color: white;} "
-											 "QProgressBar::chunk { background: grey; }"); 
+        progressBar_File_prev->setStyleSheet("QProgressBar {text-align: left; color: white; }" 
+                                             "QProgressBar::disabled {color: white;} "
+                                             "QProgressBar::chunk { background: grey; }"); 
     }
 
-	
-	
+
+
     QVariant filename = current->data (0, 0);
 
     if (filename.isValid()) {
         ViewFile (filename.toString());
-		teteco_app_control_send (teteco, TETECO_APP_CONTROL_SET_FILE, treeWidget_Files->indexOfTopLevelItem (current));
+        teteco_app_control_send (teteco, TETECO_APP_CONTROL_SET_FILE, treeWidget_Files->indexOfTopLevelItem (current));
     }
 
 }
@@ -659,9 +680,9 @@ void Interface::AddBookmark (QString name, QString url) {
     QMenu*   menuBookmark  = new QMenu   (menuBookmarks);
     QAction* actionDelete  = new QAction (menuBookmark);
     QAction* actionConnect = new QAction (menuBookmark);
-		
-	QObject::connect (this, SIGNAL(Disconnected(bool)), actionConnect, SLOT(setEnabled()));
-	
+
+    QObject::connect (this, SIGNAL(Disconnected(bool)), actionConnect, SLOT(setEnabled(bool)));
+
     actionDelete->setText  ("Delete");
     actionConnect->setText ("Connect");
 
@@ -735,7 +756,7 @@ void Interface::AddCurrentBookMark () {
 
 void Interface::About () {
 
-    QMessageBox::about (this, "TETECO - About", 
+    QMessageBox::about (this, "TETECO - About",
                         "<html>"
                             "<center>"
                                 "<h1>TETECO</h1>"
@@ -750,40 +771,40 @@ void Interface::About () {
 
 void Interface::AppControlReceived (int argument1, int argument2) {
 
-	if (argument1 == TETECO_APP_CONTROL_SET_FILE) {
-		treeWidget_Files->setCurrentItem (treeWidget_Files->topLevelItem  (argument2));
-	}
-	else if (argument1 == TETECO_APP_CONTROL_SET_PAGE) {
-		DocumentWidget* Document = qobject_cast<DocumentWidget *>(scrollArea_Viewer->widget());
-		if (Document != 0) Document->setPage (argument2);
-	}
+    if (argument1 == TETECO_APP_CONTROL_SET_FILE) {
+        treeWidget_Files->setCurrentItem (treeWidget_Files->topLevelItem  (argument2));
+    }
+    else if (argument1 == TETECO_APP_CONTROL_SET_PAGE) {
+        DocumentWidget* Document = qobject_cast<DocumentWidget *>(scrollArea_Viewer->widget());
+        if (Document != 0) Document->setPage (argument2);
+    }
 }
 
 void Interface::SendPageChanged (int page) {
 
-	teteco_app_control_send (teteco, TETECO_APP_CONTROL_SET_PAGE, page);
+    teteco_app_control_send (teteco, TETECO_APP_CONTROL_SET_PAGE, page);
 
 }
 
 void Interface::NewTreeWidgetFiles () {
 
-	delete (treeWidget_Files);
+    delete (treeWidget_Files);
 
-	treeWidget_Files = new QTreeWidget(layoutWidget1);
-	treeWidget_Files->setObjectName(QString::fromUtf8("treeWidget_Files"));
-	treeWidget_Files->setEditTriggers(QAbstractItemView::NoEditTriggers);
-	treeWidget_Files->setProperty("showDropIndicator", QVariant(false));
-	treeWidget_Files->setSelectionBehavior(QAbstractItemView::SelectItems);
-	treeWidget_Files->setRootIsDecorated(false);
-	treeWidget_Files->setUniformRowHeights(true);
-	treeWidget_Files->setItemsExpandable(false);
-	treeWidget_Files->setExpandsOnDoubleClick(false);
+    treeWidget_Files = new QTreeWidget(layoutWidget1);
+    treeWidget_Files->setObjectName(QString::fromUtf8("treeWidget_Files"));
+    treeWidget_Files->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    treeWidget_Files->setProperty("showDropIndicator", QVariant(false));
+    treeWidget_Files->setSelectionBehavior(QAbstractItemView::SelectItems);
+    treeWidget_Files->setRootIsDecorated(false);
+    treeWidget_Files->setUniformRowHeights(true);
+    treeWidget_Files->setItemsExpandable(false);
+    treeWidget_Files->setExpandsOnDoubleClick(false);
 
-	QTreeWidgetItem *FilesHeader = treeWidget_Files->headerItem();
+    QTreeWidgetItem *FilesHeader = treeWidget_Files->headerItem();
     FilesHeader->setText(0, QApplication::translate("MainWindow", (buttonServer->isChecked())?"Sent Files":"Received Files", 0, QApplication::UnicodeUTF8));
-	
-	verticalLayout_2->addWidget(treeWidget_Files);
-	
-	QObject::connect(treeWidget_Files, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),this, SLOT (FileSelected(QTreeWidgetItem*,QTreeWidgetItem*)));
+
+    verticalLayout_2->addWidget(treeWidget_Files);
+
+    QObject::connect(treeWidget_Files, SIGNAL(currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)),this, SLOT (FileSelected(QTreeWidgetItem*,QTreeWidgetItem*)));
 
 }

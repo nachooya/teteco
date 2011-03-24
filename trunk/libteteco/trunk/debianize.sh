@@ -7,7 +7,7 @@ set -x
 
 prefix="/usr"
 version="1"
-revision="0"
+revision="2"
 
 ARCH=`uname -r | awk -F "-" '{print $3}'`
 if [ "$ARCH" != "amd64" ]
@@ -20,7 +20,7 @@ if [ -x "src/libteteco.so."$version"."$revision ]; then
     mkdir debian/DEBIAN -p
     mkdir debian/$prefix/lib -p
     mkdir debian/$prefix/include -p
-    cp src/libteteco.so.$version.0 debian/$prefix/lib
+    cp src/libteteco.so.$version.$revision debian/$prefix/lib
     OLD_PWD=`pwd`
     cd debian/$prefix/lib
     ln -sf libteteco.so.$version.$revision libteteco.so.$version

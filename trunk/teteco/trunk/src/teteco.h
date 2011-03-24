@@ -23,6 +23,7 @@ class Interface : public QMainWindow, private Ui::MainWindow {
         QTimer              audioLevelTimer;
         QTimer              netLevelTimer;
         QLabel*             labelStatus;
+        QLabel*             blackLabel;
         ConfigurationWindow* configurationWindow;
         StatisticsWindow*   statisticsWindow;
         teteco_t*           teteco;
@@ -37,20 +38,24 @@ class Interface : public QMainWindow, private Ui::MainWindow {
 
         Interface (QMainWindow *parent = 0);
         ~Interface () {statisticsWindow->close(); };
-		
-	private: 
-		void NewTreeWidgetFiles (void);
+
+        void setServerConnected     (void);
+        void setClientConnected     (void);
+        void setServerListening     (void);
+        void setClientDisconnected  (void);
+
+    private: 
+        void NewTreeWidgetFiles (void);
 
     private slots:
 
         void Connect            (void);
         void Server_Listen      (bool toggled);
         void ChatSend           (void);
-        void SetNetMode         (bool server);
         void UpdateStatistics   (void);
         void ChatAppend         (QString entry);
-		void AppControlReceived (int argument1, int argument2);
-		void SendPageChanged    (int page);
+        void AppControlReceived (int argument1, int argument2);
+        void SendPageChanged    (int page);
         void LogAppend          (QString entry);
         void SetStatus          (int status);
         void AudioLevel         (void);
@@ -65,9 +70,9 @@ class Interface : public QMainWindow, private Ui::MainWindow {
         void AddCurrentBookMark (void);
         void About              (void);
         void ViewerVisible      (bool);
-		
-	signals:
-		void Disconnected 		(bool);
+
+    signals:
+    void Disconnected           (bool);
 
 };
 

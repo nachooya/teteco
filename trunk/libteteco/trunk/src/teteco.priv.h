@@ -98,6 +98,8 @@ typedef struct {
 
     // Protected
 
+    uint16_t                pending_control_ack;
+    uint16_t                pending_file_ack;
     uint16_t                remote_port;
     char*                   remote_address;
     teteco_speex_band_t     enc_speex_band;
@@ -141,11 +143,11 @@ typedef struct {
 ***********************/
 // TO BE USED BY THE LIBRARY
 
-void        teteco_set_status       	(teteco_t* teteco, teteco_status_t status);
-void        teteco_chat_received    	(teteco_t* teteco, char* entry);
-void        teteco_control_app_received	(teteco_t* teteco, int32_t argument1, int32_t argument2);
-int         teteco_start_connection 	(teteco_t* teteco);
-int         teteco_send_helo        	(teteco_t* teteco);
-teteco_t*   teteco_stop             	(teteco_t* teteco);
+void        teteco_set_status           (teteco_t* teteco, teteco_status_t status);
+void        teteco_chat_received        (teteco_t* teteco, char* entry);
+void        teteco_control_app_received (teteco_t* teteco, int32_t argument1, int32_t argument2);
+int         teteco_start_connection     (teteco_t* teteco);
+int         teteco_send_helo            (teteco_t* teteco);
+teteco_t*   teteco_stop                 (teteco_t* teteco);
 
 #endif
