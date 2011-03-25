@@ -74,10 +74,6 @@ void DocumentWidget::showPage(int page)
     QImage image = doc->page(currentPage)
                       ->renderToImage(scaleFactor * physicalDpiX(), scaleFactor * physicalDpiY());
 
-	printf ("Image size: %d\n", image.byteCount());
-	fflush (stdout);
-	image.save(QString("./tmp"+QString::number(currentPage)+".gif"));
-
     setPixmap(QPixmap::fromImage(image));
 	resize(image.size());
 	show();
