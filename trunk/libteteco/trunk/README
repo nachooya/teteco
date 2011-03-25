@@ -1,19 +1,53 @@
-Windows Compilation
-===================
+
+
+MinGW
+=====
+Download from http://sourceforge.net/projects/mingw/files/
+
+Download the mingw-get-inst-XXXXXXX.exe file for an automated installation.
+When prompted choose 
+	* C Compiler
+    * C++ Compiler
+	* MSYS Basic 
+	* MinGW Developer 	
 
 Install MinGW
 
 pthreads-w32
+============
+Download pthreads-w32 version 2.8.0 from http://sourceware.org/pthreads-win32/
+ftp://sourceware.org/pub/pthreads-win32/pthreads-w32-2-8-0-release.tar.gz
+tar xzvf pthreads-w32-2-8-0-release.tar.gz
+cd pthreads-w32-2-8-0-release
 make clean GC-static
 
 libevent
+========
+Download from http://monkey.org/~provos/libevent/
+http://monkey.org/~provos/libevent-2.0.10-stable.tar.gz
+tar xzvf libevent-2.0.10-stable.tar.gz
+cd libevent-2.0.10-stable.tar.gz
 ./configure --disable-openssl --disable-malloc-replacement
 make
 
 portaudio
+=========
+Download from http://www.portaudio.com/
+http://www.portaudio.com/archives/pa_stable_v19_20071207.tar.gz
+tar xzvf pa_stable_v19_20071207.tar.gz
+cd portaudio
 ./configure
 make
 
 speex
+=====
+Download from www.speex.org
+http://downloads.xiph.org/releases/speex/speex-1.2rc1.tar.gz
+tar xzvf speex-1.2rc1.tar.gz
+cd speex-1.2rc2
 ./configure
 make
+
+libpttp
+=======
+make -f Makefile.win
