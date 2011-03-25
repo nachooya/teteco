@@ -8,7 +8,6 @@ make
 
 * Windows
 
-
 qwt
 From qt shell
 qmake
