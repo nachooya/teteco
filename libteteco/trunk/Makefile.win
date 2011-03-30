@@ -1,17 +1,15 @@
-CFLAGS=-Wall -c -g -D__WINDOWS__ -DBUILDING_TETECO_DLL
+CFLAGS=-Wall -c -g -D__WINDOWS__ -DBUILDING_TETECO_DLL -DPTW32_STATIC_LIB
 
-INCLUDE=-I../libs/libevent-2.0.10-stable/include \
-        -I../libs/portaudio/include \
-		-I../libs/speex-1.2rc1/include \
-		-I../libs/pthreads-w32-2-8-0-release
+INCLUDE=-I$(PREFIX)/include
 LDFLAGS=-static -static-libgcc -lwinmm -lws2_32
-LIBS_STATIC=../libs/pthreads-w32-2-8-0-release/libpthreadGC2.a \
-	 ../libs/libevent-2.0.10-stable/.libs/libevent.a \
-     ../libs/portaudio/lib/.libs/libportaudio.a \
-     ../libs/speex-1.2rc1/libspeex/.libs/libspeex.a \
-     ../libs/speex-1.2rc1/libspeex/.libs/libspeexdsp.a
+LIBS_STATIC=$(PREFIX)/lib/libevent.a \
+			$(PREFIX)/lib/libportaudio.a \
+			$(PREFIX)/lib/libspeex.a \
+			$(PREFIX)/lib/libspeexdsp.a \
+			$(PREFIX)/lib/libpthreadGC2.a
+			
+PREFIX=($PREFIX)
 	 
-
 CC=gcc
 
 SOURCES=src/teteco_net.c \
@@ -52,5 +50,8 @@ clean:
 debian:
 	./debianize.sh
 
-
+install:
+	cp include/teteco.h $(PREFIX)/include/
+	cp src/teteco.a     $(PREFIX)/lib/
+	
 .PHONY: debian
