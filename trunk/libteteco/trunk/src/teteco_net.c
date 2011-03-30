@@ -396,8 +396,13 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
             char *chat_entry = malloc (protocol.chat.size+1);
             memcpy (chat_entry, protocol.chat.payload, protocol.chat.size);
             chat_entry [protocol.chat.size] = '\0';
-            chat_ack_add (teteco->chat_data, protocol.chat.seq);
-            teteco_chat_received (teteco, chat_entry);
+			
+            if (chat_ack_add (teteco->chat_data, protocol.chat.seq)) {
+				teteco_chat_received (teteco, chat_entry);
+			}
+			else {
+				util_free (chat_entry);
+			}
         }
         if (protocol.chat_ack.has) {
             log_print ("[receiver]: Received Chat ack: %d\n", protocol.chat_ack.seq);

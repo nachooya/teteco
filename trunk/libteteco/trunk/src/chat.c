@@ -38,7 +38,7 @@ chat_data_t* chat_start (void) {
 	chat_data->chat_ack_list.head = NULL;
 	chat_data->chat_ack_list.tail  = NULL;
 
-    chat_data->comment_seq   = 0;
+    chat_data->comment_seq   = 1;
     chat_data->last_recv_ack = 0;
 
     return chat_data;
@@ -132,7 +132,7 @@ int chat_ack (chat_data_t* chat_data, uint16_t seq) {
     if (chat_node != NULL) {
 		chat_data->chat_list.head = chat_node->prev_entry;
 		if (chat_data->chat_list.head == NULL) chat_data->chat_list.tail = NULL;
-        chat_data->last_recv_ack = seq;
+        //chat_data->last_recv_ack = seq;
 		free (chat_node->entry);
 		free (chat_node);
         return 1;
@@ -150,6 +150,9 @@ int chat_ack_add (chat_data_t* chat_data, uint16_t ack_num) {
     if (chat_data == NULL) {
         return 0;
     }
+	else if (ack_num <= chat_data->last_recv_ack) {
+		return 0;
+	}
 
     chat_ack_node_t* chat_ack_node = util_malloc (sizeof(chat_ack_node_t));
 

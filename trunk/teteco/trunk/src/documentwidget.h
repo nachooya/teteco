@@ -40,7 +40,7 @@
 #define DOCUMENTWIDGET_H
 
 #include <QLabel>
-#include <poppler-qt4.h>
+#include <poppler/qt4/poppler-qt4.h>
 
 class DocumentWidget : public QLabel
 {

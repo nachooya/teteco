@@ -661,10 +661,10 @@ int teteco_file_send (teteco_t* teteco, char* file_path) {
         log_print ("[tedeco]: On file send: teteco not initialized");
         return 0;
     }
-    else if (teteco->pending_file_ack%2 == 1) {
-        log_print ("[tedeco]: On file send: expecting ack");
-        return 0;
-    }
+    // else if (teteco->pending_file_ack%2 == 1) {
+        // log_print ("[tedeco]: On file send: expecting ack");
+        // return 0;
+    // }
     else if (teteco->audio_mode != TETECO_AUDIO_SENDER) {
         log_print ("[tedeco]: On file send: you are not sender!");
         return 0;
