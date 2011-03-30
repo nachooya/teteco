@@ -1,7 +1,7 @@
 CFLAGS=-Wall -c -g -fPIC -D__LINUX__
 INCLUDE=-I../libs/libevent-2.0.10-stable/include/
-LDFLAGS=-shared -Wl,-soname,libteteco.so.1 -lportaudio -lspeex -lspeexdsp
-LIBS=../libs/libevent-2.0.10-stable/.libs/libevent.a
+LDFLAGS=-shared -Wl,-soname,libteteco.so.1 -lportaudio -lspeex -lspeexdsp -levent
+LIBS=
 CC=gcc
 
 SOURCES=src/teteco_net.c \
