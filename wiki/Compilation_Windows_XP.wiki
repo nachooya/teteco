@@ -1,7 +1,4 @@
-#Compilation in Windows XP
-
 =Compilation in Windows XP=
-
 
 ===MinGW32===
 	
