@@ -64,10 +64,11 @@
   * I got qt-win-opensource-4.7.2-mingw.exe
   * Install it. I did on default directory C:\Qt\4.7.2
   * Open MSYS shell and
+  * Edit /c/Qt/4.2.7/mkspecs/mkspecs/win32-g++/qmake.conf: add "-static" to QMAKE_LFLAGS
   * Go to installation directory and execute (to get static libraries):
-  * ./configure.exe -static -fast -opensource -release -no-accessibility -no-sql-sqlite -no-qt3support -no-opengl -qt-zlib -qt-gif -qt-libpng -qt-libmng -qt-libtiff -gt-libjpeg -no-multimedia -no-webkit -qt-style-windows -qt-style-windowsxp -qt-style-windowsvista
+  * ./configure.exe -static -no-exceptions -nomake examples -nomake demos -fast -opensource -release -no-accessibility -no-sql-sqlite -no-qt3support -no-opengl -qt-zlib -qt-gif -qt-libpng -qt-libmng -qt-libtiff -qt-libjpeg -no-multimedia -no-webkit -qt-style-windows -qt-style-windowsxp -qt-style-windowsvista
   * make
-	
+  	
 ===Qwt===
 
   * Download from http://downloads.sourceforge.net/project/qwt/qwt/5.2.1/qwt-5.2.1.tar.bz2?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fqwt%2Ffiles%2Fqwt%2F5.2.1%2F&ts=1301161041&use_mirror=switch
