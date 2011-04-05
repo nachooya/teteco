@@ -34,7 +34,7 @@ else
 fi
 
 echo "Package: libteteco" > control
-echo "Depends: libportaudio2, libspeex1, libspeexdsp1" >> control
+echo "Depends: libportaudio2, libspeex1, libspeexdsp1, libevent (>=2.0-5)" >> control
 echo "Version: $version.$revision" >> control
 echo "Section: base" >> control
 echo "Priority: optional" >> control
