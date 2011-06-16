@@ -1,6 +1,3 @@
-
-
-
 /**
  * @file    circular_buffer.c
  * @Author  Ignacio Martín Oya (nachooya@gmail.com)
@@ -155,4 +152,9 @@ unsigned int circular_buffer_read (circular_buffer_t* buffer, void* output, unsi
         buffer->n_read++;
     }
     return i;
+}
+
+unsigned int circular_buffer_read_frames  (circular_buffer_t* buffer, void* output, unsigned int frames) {
+
+
 }

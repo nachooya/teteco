@@ -396,13 +396,18 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
             char *chat_entry = malloc (protocol.chat.size+1);
             memcpy (chat_entry, protocol.chat.payload, protocol.chat.size);
             chat_entry [protocol.chat.size] = '\0';
-			
+
             if (chat_ack_add (teteco->chat_data, protocol.chat.seq)) {
-				teteco_chat_received (teteco, chat_entry);
-			}
-			else {
-				util_free (chat_entry);
-			}
+                teteco_chat_received (teteco, chat_entry);
+                if (teteco->audio_mode == TETECO_AUDIO_RECEIVER) {
+                    if (!teteco_udp_send_ready (teteco)) {
+                        log_print ("[speex]: Error in teteco_udp_audio_ready");
+                    }
+                }
+            }
+            else {
+                util_free (chat_entry);
+            }
         }
         if (protocol.chat_ack.has) {
             log_print ("[receiver]: Received Chat ack: %d\n", protocol.chat_ack.seq);
@@ -439,7 +444,7 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
 
 
 
-    if (bye_received && 
+    if (bye_received &&
         (teteco->status == TETECO_STATUS_WAITING ||
          teteco->status == TETECO_STATUS_CONNECTED ||
          teteco->status == TETECO_STATUS_CONNECTING))
@@ -475,10 +480,12 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
 
         if (teteco->audio_mode == TETECO_AUDIO_SENDER) {
             // Get voice
-            int FRAME_SIZE  = teteco->speex_state->frame_size;
-            int SAMPLE_RATE = teteco->speex_state->sample_rate;
-            int ENC_SIZE    = teteco->speex_state->encoded_frame_size+5;
-            protocol.voice.size = circular_buffer_read (teteco->speex_state->buffer, &protocol.voice.payload, (SAMPLE_RATE/FRAME_SIZE)*ENC_SIZE);
+            //int FRAME_SIZE  = teteco->speex_state->frame_size;
+            //int SAMPLE_RATE = teteco->speex_state->sample_rate;
+            //int ENC_SIZE    = teteco->speex_state->encoded_frame_size+5;
+            //protocol.voice.size = circular_buffer_read (teteco->speex_state->buffer, &protocol.voice.payload, (SAMPLE_RATE/FRAME_SIZE)*ENC_SIZE);
+            //protocol.voice.size = circular_buffer_read_frames (teteco->speex_state->buffer, &protocol.voice.payload, 3);
+            protocol.voice.size = frame_list_get_frames_raw (teteco->frame_list, 3, &protocol.voice.payload);
             if (protocol.voice.size > 0) {
                 protocol.status = 1;
                 protocol.voice.has = 1;
@@ -524,19 +531,9 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
         }
     }
 
-    struct timeval ten_usec;
-    ten_usec.tv_sec  = 0;
-    ten_usec.tv_usec = 1000000/10;
-
-    if (teteco->udp_send_event == NULL) {
-        log_print ("[teteco_net]: This shouldn't happen\n");
-        teteco->udp_send_event = event_new (event_base, -1, EV_TIMEOUT, teteco_udp_send_callback, teteco);
-    }
-    if (0 != event_add (teteco->udp_send_event, &ten_usec)) {
-        log_print ("[teteco_net]: Error adding event\n");
-    }
-
 }
+
+
 
 int teteco_net_file_listen (teteco_t* teteco, int *local_port) {
 
@@ -852,7 +849,7 @@ void teteco_net_file_recv_callback (int sd, short event, void *teteco_ref) {
 
     }
 
-    // Read 
+    // Read
 
     static int      received = 0;
     unsigned int    buffer_size = 10240;

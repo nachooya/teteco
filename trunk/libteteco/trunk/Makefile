@@ -1,13 +1,13 @@
 CFLAGS=-Wall -c -g -fPIC -D__LINUX__
 INCLUDE=-I../libs/libevent-2.0.10-stable/include/
 LDFLAGS=-shared -Wl,-soname,libteteco.so.1 -lportaudio -lspeex -lspeexdsp -levent
-LIBS=
+LIBS=-L/home/nacho/teteco/lib/
 CC=gcc
 
 SOURCES=src/teteco_net.c \
         src/audio.c \
         src/enc_speex.c \
-        src/circular_buffer.c \
+        src/frame_list.c \
         src/util.c \
         src/speex_jitter_buffer.c \
         src/protocol.c \
@@ -24,7 +24,7 @@ all: $(SOURCES) $(LIBRARY)
 	ln -sf $(LIBRARY) src/libteteco.so
 
 $(LIBRARY): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) $(LIBS) -o $@
+	$(CC) $(LIBS) $(LDFLAGS) $(OBJECTS)  -o $@
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDE) $< -o $@

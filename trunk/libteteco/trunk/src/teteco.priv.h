@@ -41,6 +41,7 @@
 #include "chat.h"
 #include "audio.h"
 #include "enc_speex.h"
+#include "frame_list.h"
 
 #define MAX_DATAGRAM_SIZE 1300
 #define CHAT_MAX_LENGTH 100
@@ -113,6 +114,7 @@ typedef struct {
     chat_data_t             *chat_data;
     enc_speex_status_t      *speex_state;
     audio_data_t            *audio;
+    frame_list_t            *frame_list;
 
     // Private
 
@@ -143,6 +145,7 @@ typedef struct {
 ***********************/
 // TO BE USED BY THE LIBRARY
 
+int         teteco_udp_send_ready       (teteco_t* teteco);
 void        teteco_set_status           (teteco_t* teteco, teteco_status_t status);
 void        teteco_chat_received        (teteco_t* teteco, char* entry);
 void        teteco_control_app_received (teteco_t* teteco, int32_t argument1, int32_t argument2);

@@ -29,7 +29,7 @@
 #include <speex/speex.h>
 #include <speex/speex_preprocess.h>
 #include "speex_jitter_buffer.h"
-#include "circular_buffer.h"
+#include "frame_list.h"
 
 typedef enum {
     ENC_SPEEX_MODE_ENCODER,
@@ -56,14 +56,12 @@ typedef struct {
     uint32_t             bitrate;
     uint32_t             encoded_frame_size;
 
-    circular_buffer_t    *buffer;
-
 } enc_speex_status_t;
 
 
 enc_speex_status_t* enc_speex_start      (enc_speex_mode_t mode, enc_speex_band_t band_par, int quality);
 int                 enc_speex_stop       (enc_speex_status_t* status);
-int                 enc_speex_encode     (enc_speex_status_t* status, int16_t *frame);
+int                 enc_speex_encode     (enc_speex_status_t* status, int16_t *frame, frame_list_t* frame_list);
 int                 enc_speex_put_sample (enc_speex_status_t* status, int8_t* samples, int samples_size);
 int                 enc_speex_decode     (enc_speex_status_t* status, int16_t *frame);
 
