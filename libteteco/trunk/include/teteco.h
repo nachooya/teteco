@@ -1,23 +1,15 @@
-/*! \mainpage My Personal Index Page
+/*! \mainpage libteteco API Documentation
  *
  * \section intro_sec Introduction
  *
- * libteteco library provides a communication stack for simplex VoIP communications. 
+ * libteteco library provides a communication stack for simplex VoIP communications.
  * It's intended for very asimetric Internet links where a duplex
  * VoIP communication could cause problems flooding the upload link.
  * Feedback is provided by a bidirectional chat system.
  * Additionally libteteco provides file transfer functionality with bandwidth control
  * management.
  * libteteco also takes care of sound device management.
- *
- * \section install_sec Compilation
- *
- * \subsection step1 Step 1: Check dependencies
- *
- * * libevent 2.0.10-stable
- * ./configure --disable-openssl --disable-malloc-replacement
- * make
- */
+**/
 
 
 /**
@@ -51,10 +43,10 @@
  */
 
 /** @defgroup libteteco libteteco: Simplex VoIP, chat and bandwidth managed file transfer.
- * 
- * This library provides a communication stack for simplex VoIP communications. 
+ *
+ * This library provides a communication stack for simplex VoIP communications.
  * It's intended for very asimetric Internet links where a duplex
- * VoIP communication could cause problems flooding the upload link. 
+ * VoIP communication could cause problems flooding the upload link.
  * Additionally libteteco provides file transfer functionality with bandwidth control
  * management.
  * libteteco also takes care of sound device management.
@@ -148,13 +140,13 @@ typedef struct{} teteco_t;
 typedef void(*log_callback_ft)           (char*);
 /**
  * \typedef chat_callback_ft
- * \brief   Callback definition for receiving chat messages. 
+ * \brief   Callback definition for receiving chat messages.
  * The argument is the received chat message.
 **/
 typedef void(*chat_callback_ft)          (char*);
 /**
  * \typedef app_control_callback_ft
- * \brief   Callback definition for receiving application control messages. 
+ * \brief   Callback definition for receiving application control messages.
  * The arguments are the application control messages.
 **/
 typedef void(*app_control_callback_ft)   (int32_t, int32_t);
@@ -165,15 +157,15 @@ typedef void(*app_control_callback_ft)   (int32_t, int32_t);
 typedef void(*status_callback_ft)        (teteco_status_t);
 /**
  * \typedef file_transfer_callback_ft
- * \brief   Callback definition to notify file transfer events. 
- * First argument is filename, sencond file transfer status. Third total size of file in bytes. 
+ * \brief   Callback definition to notify file transfer events.
+ * First argument is filename, sencond file transfer status. Third total size of file in bytes.
  * Fourth the number of bytes sent/received.
 **/
 typedef void(*file_transfer_callback_ft) (const char*, teteco_file_transfer_status_t, uint32_t, uint32_t);
 
 /**
  * Initialize libteteco
- * 
+ *
  * Must be called before using any of the other libteteco functions
  * @pre none
  * @post  library is ready to use
@@ -182,7 +174,7 @@ typedef void(*file_transfer_callback_ft) (const char*, teteco_file_transfer_stat
 int         teteco_init        (void);
 /**
  * Deinitialize libteteco
- * 
+ *
  * Should be called when finishing of using the library to free resources.
  * @pre library is initialized
  * @post  resources has been freeded
@@ -191,7 +183,7 @@ int         teteco_init        (void);
 int         teteco_end         (void);
 /**
  * Sends a chat message
- * 
+ *
  * Used to send chat messages to the other peer
  * @pre teteco struct is initialized and status is connected
  * @post  the message is sent
@@ -202,7 +194,7 @@ int         teteco_end         (void);
 int         teteco_chat_send   (teteco_t* teteco, const char* comment);
 /**
  * Sends a app control message
- * 
+ *
  * Used to send application control messages to the other peer
  * @pre teteco struct is initialized and status is connected
  * @post  the application control message is sent
@@ -214,7 +206,7 @@ int         teteco_chat_send   (teteco_t* teteco, const char* comment);
 int         teteco_app_control_send   (teteco_t* teteco, int32_t argument1, int32_t argument2);
 /**
  * Starts sending a file
- * 
+ *
  * Used to send a file to the other peer
  * @pre teteco struct is initialized and status is connected
  * @post  file transfer starts
@@ -225,7 +217,7 @@ int         teteco_app_control_send   (teteco_t* teteco, int32_t argument1, int3
 int         teteco_file_send   (teteco_t* teteco, const char* file_path);
 /**
  * Sets the log callback
- * 
+ *
  * Used to set the function to call to print log messages
  * @pre none
  * @post  the log callback is set
@@ -235,7 +227,7 @@ int         teteco_file_send   (teteco_t* teteco, const char* file_path);
 int         teteco_set_log_callback           (log_callback_ft           log_callback_ref);
 /**
  * Sets the chat callback
- * 
+ *
  * Used to set the function to call when a chat message is received
  * @pre none
  * @post  the chat callback is set
@@ -245,7 +237,7 @@ int         teteco_set_log_callback           (log_callback_ft           log_cal
 int         teteco_set_chat_callback          (chat_callback_ft          chat_callback_ref);
 /**
  * Sets the application control callback
- * 
+ *
  * Used to set the function to call when a application control message is received
  * @pre none
  * @post  the application control callback is set
@@ -255,7 +247,7 @@ int         teteco_set_chat_callback          (chat_callback_ft          chat_ca
 int         teteco_set_app_control_callback          (app_control_callback_ft          app_control_callback_ref);
 /**
  * Sets the status callback
- * 
+ *
  * Used to set the function to call for notify status changes
  * @pre none
  * @post  the status callback is set
@@ -265,7 +257,7 @@ int         teteco_set_app_control_callback          (app_control_callback_ft   
 int         teteco_set_status_callback        (status_callback_ft        status_callback_ref);
 /**
  * Sets the file_transfer callback
- * 
+ *
  * Used to set the function to call for notify about file transfer status
  * @pre none
  * @post  the status callback is set
@@ -276,7 +268,7 @@ int         teteco_set_file_transfer_callback (file_transfer_callback_ft file_tr
 
 /**
  * Initilize a teteco_t strcut to be used for communication
- * 
+ *
  * This is the first function to be called when starting a communication.
  * Its parameters will define how the stack will behabe
  * @pre library is initialized
@@ -306,7 +298,7 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
 
 /**
  * Stop a communication session
- * 
+ *
  * Notifies other peer to stop communication and free teteco_t struct resources
  * @pre teteco struct is initialized
  * @post  communication is finished and teteco_t struct is freeded
@@ -317,7 +309,7 @@ teteco_t* teteco_stop         (teteco_t* teteco);
 
 /**
  * Return a list of the available audio recording devices
- * 
+ *
  * This function should be called to obtain a list of all available
  * recording devices and their index. Default device is always returned
  * in first position
@@ -330,7 +322,7 @@ teteco_t* teteco_stop         (teteco_t* teteco);
 int teteco_get_in_devices      (int** index, char*** devices);
 /**
  * Return a list of the available audio playing devices
- * 
+ *
  * This function should be called to obtain a list of all available
  * playing devices and their index. Default device is always returned
  * in first position
@@ -344,7 +336,7 @@ int teteco_get_out_devices     (int** index, char*** devices);
 
 /**
  * Sets the maximum tranferring rate for file transmission
- * 
+ *
  * @pre teteco struct is initialized
  * @post  maximum tranferring rate is set
  * @param teteco A initialized teteco_t struct
@@ -353,7 +345,7 @@ int teteco_get_out_devices     (int** index, char*** devices);
 void            teteco_set_max_transfer_rate (teteco_t* teteco, uint32_t transfer_rate);
 /**
  * Gets the remote IP peer address as string "x.x.x.x:port"
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -362,7 +354,7 @@ void            teteco_set_max_transfer_rate (teteco_t* teteco, uint32_t transfe
 char*           teteco_get_remote_address (teteco_t* teteco);
 /**
  * Gets the pseudo dB of the sound emitted/received
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -371,7 +363,7 @@ char*           teteco_get_remote_address (teteco_t* teteco);
 float           teteco_get_current_db (teteco_t* teteco);
 /**
  * Gets the total bytes send in the audio channel
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -380,7 +372,7 @@ float           teteco_get_current_db (teteco_t* teteco);
 uint32_t        teteco_get_total_bytes_out (teteco_t* teteco);
 /**
  * Gets the total bytes received in the audio channel
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -389,7 +381,7 @@ uint32_t        teteco_get_total_bytes_out (teteco_t* teteco);
 uint32_t        teteco_get_total_bytes_in (teteco_t* teteco);
 /**
  * Gets the timestamp when connection was stablished
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -398,7 +390,7 @@ uint32_t        teteco_get_total_bytes_in (teteco_t* teteco);
 uint32_t        teteco_get_time_start (teteco_t* teteco);
 /**
  * Gets the status of the connection
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -406,17 +398,17 @@ uint32_t        teteco_get_time_start (teteco_t* teteco);
  */
 teteco_status_t teteco_get_status (teteco_t* teteco);
 /**
- * Gets the number of received audio packet which were expected to receive 
- * 
+ * Gets the number of received audio packet which were expected to receive
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
- * @return the number of received audio packet which were expected to receive 
+ * @return the number of received audio packet which were expected to receive
  */
 uint32_t        teteco_get_packets_expected (teteco_t* teteco);
 /**
- * Gets the number of received audio packet actually received 
- * 
+ * Gets the number of received audio packet actually received
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -425,7 +417,7 @@ uint32_t        teteco_get_packets_expected (teteco_t* teteco);
 uint32_t        teteco_get_packets_received (teteco_t* teteco);
 /**
  * Gets the real transfer rate of the file which is being sent/received
- * 
+ *
  * @pre teteco struct is initialized
  * @post  none
  * @param teteco A initialized teteco_t struct
@@ -434,7 +426,7 @@ uint32_t        teteco_get_packets_received (teteco_t* teteco);
 uint32_t        teteco_get_transfer_rate    (teteco_t* teteco);
 /**
  * Prints the internal teteco_t struct status
- * 
+ *
  * For developing pupouses
  * @pre teteco struct is initialized
  * @post  none

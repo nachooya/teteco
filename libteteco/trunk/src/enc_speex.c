@@ -141,15 +141,12 @@ enc_speex_status_t* enc_speex_start (enc_speex_mode_t mode, enc_speex_band_t ban
             util_free (status);
         }
 
-        int BUFFER_SECONDS = 10;
+        int BUFFER_SECONDS = 1;
         int FRAME_SIZE  = status->frame_size;
         int SAMPLE_RATE = status->sample_rate;
         int ENC_SIZE    = status->encoded_frame_size+5;
         log_print ("[speex]: Frame size: %d\nSample Rate = %d\nEncodec Frame size = %d", FRAME_SIZE, SAMPLE_RATE, ENC_SIZE);
         log_print ("[speex]: Buffer size: %u bytes for 10 seconds", (SAMPLE_RATE/FRAME_SIZE)*ENC_SIZE*BUFFER_SECONDS);
-
-        status->buffer = circular_buffer_new ((SAMPLE_RATE/FRAME_SIZE)*ENC_SIZE*BUFFER_SECONDS, sizeof(int8_t));
-
 
     }
     else if (mode == ENC_SPEEX_MODE_DECODER ) {
@@ -194,9 +191,6 @@ enc_speex_status_t* enc_speex_start (enc_speex_mode_t mode, enc_speex_band_t ban
 //             return NULL;
 //         }
 
-        status->buffer = NULL;
-        //status->buffer = circular_buffer_new ((SAMPLE_RATE/FRAME_SIZE)*ENC_SIZE*BUFFER_SECONDS, sizeof(int8_t));
-
 
     }
     else {
@@ -240,14 +234,13 @@ int enc_speex_stop (enc_speex_status_t* status) {
     }
     /*Destroy the bit-packing struct*/
     speex_bits_destroy(&status->bits);
-    circular_buffer_free (status->buffer);
     util_free (status);
 
     return 1;
 
 }
 
-int enc_speex_encode (enc_speex_status_t* status, int16_t *frame) {
+int enc_speex_encode (enc_speex_status_t* status, int16_t *frame, frame_list_t* frame_list) {
 
     uint8_t nbBytes = 0;
 
@@ -256,6 +249,7 @@ int enc_speex_encode (enc_speex_status_t* status, int16_t *frame) {
     speex_preprocess_run (status->preprocess_state, frame);
 
     speex_bits_reset(&status->bits);
+    status->timestamp += status->frame_size;
     /*Encode the frame: if 0 no need to be transmitted*/
     if (speex_encode_int (status->state, frame, &status->bits) == 0) {
         return 0;
@@ -273,12 +267,11 @@ int enc_speex_encode (enc_speex_status_t* status, int16_t *frame) {
     //log_print ("nbBytes: %d\n", nbBytes);
     //circular_buffer_write (buffer_out, &status->frame_number, 1);
     status->frame_number++;
-    circular_buffer_write (status->buffer, &status->timestamp, sizeof(int));
-    status->timestamp += status->frame_size;
-    circular_buffer_write (status->buffer, &nbBytes, sizeof(uint8_t));
-    circular_buffer_write (status->buffer, cbits, nbBytes);
 
+    frame_list_add_frame (frame_list, nbBytes, status->timestamp, cbits);
     //log_print ("in %u [%u] bytes ", nbBytes, nbBytes+1+4);
+
+
 
    return nbBytes;
 }

@@ -51,14 +51,18 @@ void log_print (char* fmt, ...) {
 
     vasprintf(&entry, fmt, args);
 
-	
-    fprintf (stderr, "LOG: %s\n", entry);
-	#ifdef __WINDOWS__
-	fflush (stderr);
-	fflush (stdout);
-	#endif
-	
-    (log_callback) (entry);
+    if (log_callback != NULL) {
+        (log_callback) (entry);
+    }
+    else {
+        fprintf (stderr, "LOG: %s\n", entry);
+    }
+    #ifdef __WINDOWS__
+    fflush (stderr);
+    fflush (stdout);
+    #endif
+
+
 
     free (entry);
 

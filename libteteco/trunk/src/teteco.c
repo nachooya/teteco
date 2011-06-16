@@ -68,7 +68,7 @@ void chat_callback_default (char* entry) {
 void app_control_callback_default (int32_t argument1, int32_t argument2) {
 
     printf ("[app_control]: Received: %d - %d\n", argument1, argument2);
-	
+
 }
 
 void status_callback_default (teteco_status_t status) {
@@ -140,9 +140,17 @@ int frame_fun_record (int size, int16_t *buffer, void* teteco_ref) {
 
     teteco->current_db = Db;
 
-    int speex_size = enc_speex_encode (teteco->speex_state, buffer);
+    int speex_size = enc_speex_encode (teteco->speex_state, buffer, teteco->frame_list);
 
     return speex_size;
+
+}
+
+void frame_list_callback (int num, void* teteco_ref) {
+
+    log_print ("[teteco]: Frame callback: %d", num);
+
+    teteco_udp_send_ready (teteco_ref);
 
 }
 
@@ -222,13 +230,13 @@ void* teteco_main_thread (void* data) {
 
     switch (event_base_dispatch (event_base)) {
 
-        case -1: 
+        case -1:
             log_print ("[teteco]: Error on event_base_loop");
             break;
         case 0:
             log_print ("[teteco]: Main thread stoped");
             break;
-        case 1: 
+        case 1:
             log_print ("[teteco]: No events registered");
             break;
         default:
@@ -296,18 +304,18 @@ int teteco_start_connection (teteco_t* teteco) {
             log_print ("[receiver]: Error playing");
             return 0;
         }
-        struct timeval ten_usec;
-        ten_usec.tv_sec  = 0;
-        ten_usec.tv_usec = 1000000/10;
-
-        teteco->udp_send_event = event_new (event_base, -1, EV_TIMEOUT, teteco_udp_send_callback, teteco);
-        event_add (teteco->udp_send_event, &ten_usec);
+//         struct timeval ten_usec;
+//         ten_usec.tv_sec  = 0;
+//         ten_usec.tv_usec = 1000000/10;
+//
+//         teteco->udp_send_event = event_new (event_base, -1, EV_TIMEOUT, teteco_udp_send_callback, teteco);
+//         event_add (teteco->udp_send_event, &ten_usec);
 
     }
     else if (teteco->audio_mode == TETECO_AUDIO_SENDER) {
 
-        teteco->speex_state      = enc_speex_start (ENC_SPEEX_MODE_ENCODER, ENC_SPEEX_NB, 8);
-        teteco->audio            = audio_init (teteco->speex_state->sample_rate, teteco->speex_state->frame_size, &frame_fun_record, teteco);
+        teteco->speex_state       = enc_speex_start (ENC_SPEEX_MODE_ENCODER, ENC_SPEEX_NB, 8);
+        teteco->audio             = audio_init (teteco->speex_state->sample_rate, teteco->speex_state->frame_size, &frame_fun_record, teteco);
 
         if (teteco->audio == NULL) {
             log_print ("[teteco]: Cannot start audio");
@@ -317,12 +325,12 @@ int teteco_start_connection (teteco_t* teteco) {
             log_print ("[receiver]: Error playing");
             return 0;
         }
-        struct timeval ten_usec;
+        /*struct timeval ten_usec;
         ten_usec.tv_sec  = 0;
         ten_usec.tv_usec = 1000000/10;
 
         teteco->udp_send_event = event_new (event_base, -1, EV_TIMEOUT, teteco_udp_send_callback, teteco);
-        event_add (teteco->udp_send_event, &ten_usec);
+        event_add (teteco->udp_send_event, &ten_usec);*/
 
     }
     else {
@@ -511,6 +519,9 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->remote_address_len = sizeof (struct sockaddr_in);
 
         teteco->chat_data        = chat_start ();
+        teteco->frame_list       = frame_list_new (9);
+
+        frame_list_set_callback (teteco->frame_list, 3, &frame_list_callback, teteco);
 
         teteco->enc_speex_band   = (enc_speex_band==TETECO_SPEEX_NB)?ENC_SPEEX_NB:
                                    (enc_speex_band==TETECO_SPEEX_WB)?ENC_SPEEX_WB:
@@ -580,7 +591,8 @@ teteco_t* teteco_stop (teteco_t* teteco) {
         log_print ("[teteco]: Error stopping net");
     }
 
-    teteco->chat_data = chat_stop (teteco->chat_data);
+    teteco->chat_data  = chat_stop       (teteco->chat_data);
+    teteco->frame_list = frame_list_free (teteco->frame_list);
 
 
 
@@ -601,6 +613,28 @@ teteco_t* teteco_stop (teteco_t* teteco) {
     log_print ("[teteco]: Stopped");
 
     return NULL;
+
+}
+
+int teteco_udp_send_ready (teteco_t* teteco) {
+
+    struct timeval ten_usec;
+    ten_usec.tv_sec  = 0;
+    ten_usec.tv_usec = 1000000/10;
+
+    if (teteco->udp_send_event == NULL) {
+        log_print ("[teteco_net]: This shouldn't happen two times");
+        teteco->udp_send_event = event_new (event_base, teteco->sd_udp, EV_WRITE , teteco_udp_send_callback, teteco);
+    }
+
+    if (0 != event_add (teteco->udp_send_event, NULL)) {
+        log_print ("[teteco_net]: Error adding event");
+        return 0;
+    }
+
+    log_print ("[teteco_net]: UDP send event added");
+
+    return 1;
 
 }
 
