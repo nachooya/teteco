@@ -21,7 +21,7 @@ int main (int argc, char *argv[]) {
                                      22223,
                                      22222,
                                      "127.0.0.1",
-                                     0,
+                                     devices_index[0],
                                      devices_index[0],
                                      TETECO_AUDIO_RECEIVER,
                                      TETECO_SPEEX_NB,
