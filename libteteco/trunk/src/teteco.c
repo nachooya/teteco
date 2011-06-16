@@ -617,23 +617,23 @@ teteco_t* teteco_stop (teteco_t* teteco) {
 }
 
 int teteco_udp_send_ready (teteco_t* teteco) {
+    
+    teteco_udp_send_callback (teteco->sd_udp, EV_WRITE, teteco);
 
+    return 1;
     struct timeval ten_usec;
     ten_usec.tv_sec  = 0;
     ten_usec.tv_usec = 1000000/10;
 
     if (teteco->udp_send_event == NULL) {
         log_print ("[teteco_net]: This shouldn't happen two times");
-        teteco->udp_send_event = event_new (event_base, teteco->sd_udp, EV_WRITE , teteco_udp_send_callback, teteco);
+        //teteco->udp_send_event = event_new (event_base, SIGUSR1, EV_SIGNAL , teteco_udp_send_callback, teteco);
+        if (0 != event_add (teteco->udp_send_event, NULL)) {
+            log_print ("[teteco_net]: Error adding event");
+            return 0;
+        }
     }
-
-    if (0 != event_add (teteco->udp_send_event, NULL)) {
-        log_print ("[teteco_net]: Error adding event");
-        return 0;
-    }
-
-    log_print ("[teteco_net]: UDP send event added");
-
+  
     return 1;
 
 }

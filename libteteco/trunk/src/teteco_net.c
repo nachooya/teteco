@@ -305,6 +305,7 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
 
     if (protocol.status) {
         if (protocol.control.has) {
+            log_print ("[teteco_net]: Received control packet");
             if (PRO_CONTROL_IS_HELO_RECEIVER (protocol.control.type) || PRO_CONTROL_IS_HELO_SENDER (protocol.control.type)) {
                 log_print ("[receiver]: Received HELO");
                 nr = 0;
@@ -343,22 +344,25 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
                 }
             }
             else if (PRO_CONTROL_IS_APP (protocol.control.type)) {
+                log_print ("[teteco_net]: Control APP received");
                 teteco_control_app_received (teteco, protocol.control.argument1, protocol.control.argument2);
             }
-            char*        datagram = NULL;
-            unsigned int datagram_len = 0;
+            else if (!PRO_CONTROL_IS_ACK (protocol.control.type)) {
+                char*        datagram = NULL;
+                unsigned int datagram_len = 0;
 
-            protocol_t protocol2 = protocol_init;
-            protocol2.control.has = 1;
-            protocol2.control.type = PRO_CONTROL_ACK;
-            protocol2.control.seq  = protocol.control.seq;
-            protocol_build_datagram (protocol2, &datagram, &datagram_len);
-            teteco_net_send (teteco, datagram, datagram_len);
-            util_free (datagram);
+                protocol_t protocol2 = protocol_init;
+                protocol2.control.has = 1;
+                protocol2.control.type = PRO_CONTROL_ACK;
+                protocol2.control.seq  = protocol.control.seq;
+                protocol_build_datagram (protocol2, &datagram, &datagram_len);
+                teteco_net_send (teteco, datagram, datagram_len);
+                util_free (datagram);
+            }
         }
 
         if (protocol.voice_ack.has) {
-            //log_print ("\n\nACK seq:%u num:%u\n\n", protocol.voice_ack.last, protocol.voice_ack.number_received);
+            log_print ("\n\nACK seq:%u num:%u\n\n", protocol.voice_ack.last, protocol.voice_ack.number_received);
         }
 
         if (protocol.voice.has) {
@@ -530,7 +534,10 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
             //log_print ("[sender]: Nothing to send");
         }
     }
-
+/*    
+    if (0 != event_add (teteco->udp_send_event, NULL)) {
+        log_print ("[teteco_net]: Error adding event");
+    }*/
 }
 
 
