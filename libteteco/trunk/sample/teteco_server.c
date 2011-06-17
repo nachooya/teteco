@@ -18,8 +18,8 @@ int main (int argc, char *argv[]) {
     }
 
     teteco_t* teteco = teteco_start (TETECO_NET_SERVER,
-                                     22222,
-                                     22223,
+                                     30000,
+                                     11111,
                                      "127.0.0.1",
                                      devices_index[0],
                                      devices_index[0],
@@ -28,7 +28,10 @@ int main (int argc, char *argv[]) {
                                      7,
                                      "/home/nacho/teteco");
 
-    pause();
+    while (1) {
+        sleep (2);
+        teteco_chat_send (teteco, "hola");
+    }
 
     return 0;
 }

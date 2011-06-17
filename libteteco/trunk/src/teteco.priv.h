@@ -37,6 +37,7 @@
 #endif
 
 #include <event2/event.h>
+#include <event2/thread.h>
 
 #include "chat.h"
 #include "audio.h"
@@ -115,6 +116,7 @@ typedef struct {
     enc_speex_status_t      *speex_state;
     audio_data_t            *audio;
     frame_list_t            *frame_list;
+    int                     frames_per_pdu;
 
     // Private
 

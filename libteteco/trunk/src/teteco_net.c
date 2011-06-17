@@ -248,7 +248,8 @@ int teteco_net_send (teteco_t* teteco, char* buffer, int len) {
         return 0;
     }
 
-    //log_print ("[teteco_net]: Enviando paquete a %s:%d [%d]", inet_ntoa(teteco->remote_address_in.sin_addr), ntohs(teteco->remote_address_in.sin_port), len);
+    //log_print ("[teteco_net]: Enviando paquete %d bytes", len);
+
     ssize_t sent_len;
     sent_len = sendto (teteco->sd_udp, buffer, len, 0, remote_address, teteco->remote_address_len);
 
@@ -292,9 +293,9 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
         event_add (teteco->udp_recv_event, &ten_sec);
         return;
     }
-    else {
-        //log_print ("[teteco_net]: Received packet from %s:%d [%d]", inet_ntoa(teteco->remote_address_in.sin_addr), ntohs(teteco->remote_address_in.sin_port), recv_len);
-    }
+//     else {
+//         log_print ("[teteco_net]: Received packet header: 0x%02x", input[0]);
+//     }
 
     teteco->total_bytes_in+=recv_len;
 
@@ -362,7 +363,7 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
         }
 
         if (protocol.voice_ack.has) {
-            log_print ("\n\nACK seq:%u num:%u\n\n", protocol.voice_ack.last, protocol.voice_ack.number_received);
+            //log_print ("[teteco_net]: Voice ACK seq:%u num:%u", protocol.voice_ack.last, protocol.voice_ack.number_received);
         }
 
         if (protocol.voice.has) {
@@ -396,17 +397,34 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
             }
         }
         if (protocol.chat.has) {
-            log_print ("[receiver]: Chat size: %d seq:%d\n", protocol.chat.size, protocol.chat.seq);
+            log_print ("[receiver]: Chat size: %d seq:%d", protocol.chat.size, protocol.chat.seq);
             char *chat_entry = malloc (protocol.chat.size+1);
             memcpy (chat_entry, protocol.chat.payload, protocol.chat.size);
             chat_entry [protocol.chat.size] = '\0';
 
             if (chat_ack_add (teteco->chat_data, protocol.chat.seq)) {
-                teteco_chat_received (teteco, chat_entry);
+
+                if (protocol.chat.seq > teteco->chat_data->last_recv_seq) {
+                    teteco_chat_received (teteco, chat_entry);
+                    teteco->chat_data->last_recv_seq = protocol.chat.seq;
+                }
+
                 if (teteco->audio_mode == TETECO_AUDIO_RECEIVER) {
-                    if (!teteco_udp_send_ready (teteco)) {
-                        log_print ("[speex]: Error in teteco_udp_audio_ready");
+
+                    int32_t ack_num = chat_ack_get (teteco->chat_data);
+
+                    if (ack_num >= 0) {
+                        char*        datagram = NULL;
+                        unsigned int datagram_len = 0;
+                        protocol_t protocol2 = protocol_init;
+                        protocol2.status = 1;
+                        protocol2.chat_ack.has = 1;
+                        protocol2.chat_ack.seq = ack_num;
+                        protocol_build_datagram (protocol2, &datagram, &datagram_len);
+                        teteco_net_send (teteco, datagram, datagram_len);
+                        util_free (datagram);
                     }
+
                 }
             }
             else {
@@ -414,7 +432,7 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
             }
         }
         if (protocol.chat_ack.has) {
-            log_print ("[receiver]: Received Chat ack: %d\n", protocol.chat_ack.seq);
+            //log_print ("[receiver]: Received Chat ack: %d", protocol.chat_ack.seq);
             chat_ack (teteco->chat_data, protocol.chat_ack.seq);
         }
         if (protocol.file.has) {
@@ -465,6 +483,13 @@ void teteco_udp_recv_callback (int sd, short event, void *teteco_ref) {
 
 void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
 
+    //log_print ("UDP_SEND");
+
+    uint16_t ready_frames = 0;
+    read (sd, &ready_frames, sizeof(uint16_t));
+
+    //log_print ("[teteco_net]: Read from pipe [%d]: %d\n", readed, ready_frames);
+
     teteco_t* teteco = (teteco_t*) teteco_ref;
 
     if (teteco->status == TETECO_STATUS_DISCONNECTED) return;
@@ -484,12 +509,23 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
 
         if (teteco->audio_mode == TETECO_AUDIO_SENDER) {
             // Get voice
-            //int FRAME_SIZE  = teteco->speex_state->frame_size;
-            //int SAMPLE_RATE = teteco->speex_state->sample_rate;
-            //int ENC_SIZE    = teteco->speex_state->encoded_frame_size+5;
-            //protocol.voice.size = circular_buffer_read (teteco->speex_state->buffer, &protocol.voice.payload, (SAMPLE_RATE/FRAME_SIZE)*ENC_SIZE);
-            //protocol.voice.size = circular_buffer_read_frames (teteco->speex_state->buffer, &protocol.voice.payload, 3);
-            protocol.voice.size = frame_list_get_frames_raw (teteco->frame_list, 3, &protocol.voice.payload);
+
+            int16_t  frame[teteco->speex_state->frame_size];
+            int      frame_size = 0;
+            int      i;
+
+            protocol.voice.size = 0;
+
+            for (i = 0; i < 3; i++) {
+                frame_size = frame_list_get_frame (teteco->frame_list, frame);
+                if (frame_size == 0) continue;
+                //log_print ("[teteco_net]: Got frame size: %d\n", frame_size);
+                int speex_size = enc_speex_encode (teteco->speex_state, frame, &protocol.voice.payload[protocol.voice.size]);
+                //log_print ("[teteco_net]: speex_size: %d\n", speex_size);
+                protocol.voice.size += speex_size;
+            }
+            //log_print ("[teteco_net]: protocol.voice.size: %d\n", protocol.voice.size);
+
             if (protocol.voice.size > 0) {
                 protocol.status = 1;
                 protocol.voice.has = 1;
@@ -512,12 +548,12 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
         }
 
         // Get Chat ack
-        chat_ack_node_t* chat_ack = chat_ack_get (teteco->chat_data);
+        int32_t ack_num = chat_ack_get (teteco->chat_data);
 
-        if (chat_ack != NULL) {
+        if (ack_num >= 0) {
             protocol.status = 1;
             protocol.chat_ack.has = 1;
-            protocol.chat_ack.seq = chat_ack->ack_num;
+            protocol.chat_ack.seq = ack_num;
         }
 
         if (protocol.status == 1) {
@@ -534,7 +570,7 @@ void teteco_udp_send_callback (int sd, short event, void *teteco_ref) {
             //log_print ("[sender]: Nothing to send");
         }
     }
-/*    
+/*
     if (0 != event_add (teteco->udp_send_event, NULL)) {
         log_print ("[teteco_net]: Error adding event");
     }*/

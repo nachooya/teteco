@@ -25,6 +25,8 @@
 #define __FRAME_LIST_H__
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <errno.h>
 
 typedef void(*frame_list_callback_ft) (int, void*);
 
@@ -32,7 +34,7 @@ typedef struct {
 
     void*    payload;
     uint8_t  size;
-    int      timestamp;
+    bool     dirty;
 
 } frame_t;
 
@@ -40,22 +42,20 @@ typedef struct {
 
     frame_t*  frames;
     uint16_t  size;
-    uint16_t  num_frames;
-    uint16_t  read_cursor;
-    uint16_t  write_cursor;
-
-    frame_list_callback_ft callback;
-    uint16_t               callback_size;
-    void*                  callback_arg;
+    uint32_t  read_cursor;
+    uint32_t  write_cursor;
+    uint16_t  notify_frames;
+    uint16_t  notify_flag;
+    int       pipe_fds[2];
 
 } frame_list_t;
 
 
 
-frame_list_t* frame_list_new            (uint16_t num_frames);
-void*         frame_list_free           (frame_list_t* frame_list);
-int           frame_list_add_frame      (frame_list_t* frame_list, uint8_t size, int timestamp, void* payload);
-int           frame_list_get_frames_raw (frame_list_t* frame_list, uint16_t num_frames, void* output);
-int           frame_list_set_callback   (frame_list_t* frame_list, int num_frames, frame_list_callback_ft callback, void* callback_arg);
+frame_list_t* frame_list_new              (uint16_t num_frames, uint16_t frame_size, uint16_t notify_frames);
+int           frame_list_get_read_pipe_fd (frame_list_t* frame_list);
+void*         frame_list_free             (frame_list_t* frame_list);
+int           frame_list_add_frame        (frame_list_t* frame_list, uint8_t size, int16_t* payload);
+uint8_t       frame_list_get_frame        (frame_list_t* frame_list, int16_t* output);
 
 #endif

@@ -116,13 +116,12 @@ int frame_func_play (int size, int16_t* buffer, void* teteco_ref) {
 
 int frame_fun_record (int size, int16_t *buffer, void* teteco_ref) {
 
+    if (teteco_ref == NULL) return 0;
+    teteco_t* teteco = (teteco_t*) teteco_ref;
+
     float avg_amplitude = 0.0f;
     float max_amplitude = 0.0f;
     unsigned int num_samples = 0;
-
-    if (teteco_ref == NULL) return 0;
-
-    teteco_t* teteco = (teteco_t*) teteco_ref;
 
     int i;
     for (i=0; i<size; i++) {
@@ -140,17 +139,13 @@ int frame_fun_record (int size, int16_t *buffer, void* teteco_ref) {
 
     teteco->current_db = Db;
 
-    int speex_size = enc_speex_encode (teteco->speex_state, buffer, teteco->frame_list);
+    //log_print ("[record]: Size: %d", size);
 
-    return speex_size;
+    for (i = 0; i < teteco->frames_per_pdu; i++) {
+        frame_list_add_frame (teteco->frame_list, teteco->speex_state->frame_size, buffer+(teteco->speex_state->frame_size*i));
+    }
 
-}
-
-void frame_list_callback (int num, void* teteco_ref) {
-
-    log_print ("[teteco]: Frame callback: %d", num);
-
-    teteco_udp_send_ready (teteco_ref);
+    return size;
 
 }
 
@@ -304,33 +299,31 @@ int teteco_start_connection (teteco_t* teteco) {
             log_print ("[receiver]: Error playing");
             return 0;
         }
-//         struct timeval ten_usec;
-//         ten_usec.tv_sec  = 0;
-//         ten_usec.tv_usec = 1000000/10;
-//
-//         teteco->udp_send_event = event_new (event_base, -1, EV_TIMEOUT, teteco_udp_send_callback, teteco);
-//         event_add (teteco->udp_send_event, &ten_usec);
 
     }
     else if (teteco->audio_mode == TETECO_AUDIO_SENDER) {
 
-        teteco->speex_state       = enc_speex_start (ENC_SPEEX_MODE_ENCODER, ENC_SPEEX_NB, 8);
-        teteco->audio             = audio_init (teteco->speex_state->sample_rate, teteco->speex_state->frame_size, &frame_fun_record, teteco);
+
+        teteco->speex_state = enc_speex_start (ENC_SPEEX_MODE_ENCODER, ENC_SPEEX_NB, 8);
+        teteco->frame_list  = frame_list_new (9, teteco->speex_state->frame_size, 3);
+        teteco->audio       = audio_init (teteco->speex_state->sample_rate,
+                                          teteco->speex_state->frame_size*teteco->frames_per_pdu,
+                                          &frame_fun_record,
+                                          teteco);
 
         if (teteco->audio == NULL) {
             log_print ("[teteco]: Cannot start audio");
             return 0;
         }
+
+        if (!teteco_udp_send_ready (teteco)) {
+            return 0;
+        }
+
         if (audio_record (teteco->audio_device_in, teteco->audio) == -1) {
             log_print ("[receiver]: Error playing");
             return 0;
         }
-        /*struct timeval ten_usec;
-        ten_usec.tv_sec  = 0;
-        ten_usec.tv_usec = 1000000/10;
-
-        teteco->udp_send_event = event_new (event_base, -1, EV_TIMEOUT, teteco_udp_send_callback, teteco);
-        event_add (teteco->udp_send_event, &ten_usec);*/
 
     }
     else {
@@ -420,6 +413,8 @@ int teteco_init () {
     }
 #endif
 
+    //evthread_use_pthreads ();
+
     PaError error = Pa_Initialize();
 
     if (error == paNoError) {
@@ -493,6 +488,7 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->audio            = NULL;
         teteco->pending_file_ack = 0;
         teteco->pending_control_ack = 0;
+        teteco->frames_per_pdu   = 3;
 
 #ifdef __LINUX__
         teteco->thread_main      = 0;
@@ -519,9 +515,6 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->remote_address_len = sizeof (struct sockaddr_in);
 
         teteco->chat_data        = chat_start ();
-        teteco->frame_list       = frame_list_new (9);
-
-        frame_list_set_callback (teteco->frame_list, 3, &frame_list_callback, teteco);
 
         teteco->enc_speex_band   = (enc_speex_band==TETECO_SPEEX_NB)?ENC_SPEEX_NB:
                                    (enc_speex_band==TETECO_SPEEX_WB)?ENC_SPEEX_WB:
@@ -617,23 +610,16 @@ teteco_t* teteco_stop (teteco_t* teteco) {
 }
 
 int teteco_udp_send_ready (teteco_t* teteco) {
-    
-    teteco_udp_send_callback (teteco->sd_udp, EV_WRITE, teteco);
-
-    return 1;
-    struct timeval ten_usec;
-    ten_usec.tv_sec  = 0;
-    ten_usec.tv_usec = 1000000/10;
 
     if (teteco->udp_send_event == NULL) {
         log_print ("[teteco_net]: This shouldn't happen two times");
-        //teteco->udp_send_event = event_new (event_base, SIGUSR1, EV_SIGNAL , teteco_udp_send_callback, teteco);
+        teteco->udp_send_event = event_new (event_base, frame_list_get_read_pipe_fd (teteco->frame_list), EV_READ |EV_PERSIST, teteco_udp_send_callback, teteco);
         if (0 != event_add (teteco->udp_send_event, NULL)) {
             log_print ("[teteco_net]: Error adding event");
             return 0;
         }
     }
-  
+
     return 1;
 
 }
@@ -658,7 +644,9 @@ int teteco_chat_send (teteco_t* teteco, const char* comment) {
     }
     else if (teteco->status == TETECO_STATUS_CONNECTED) {
         if (chat_add (teteco->chat_data, comment)) {
-            teteco_udp_send_callback (teteco->sd_udp, -1, teteco);
+            if (teteco->audio_mode == TETECO_AUDIO_RECEIVER) {
+                teteco_udp_send_callback (teteco->sd_udp, -1, teteco);
+            }
         }
         else {
             log_print ("[teteco]: Cannon insert chat entry");
