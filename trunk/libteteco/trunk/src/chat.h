@@ -44,16 +44,19 @@ typedef struct {
 
 	void* head;
 	void* tail;
-	
+
 } linked_list_t;
 
 typedef struct {
 
-	linked_list_t  chat_list;
-	linked_list_t  chat_ack_list;
+    linked_list_t  chat_list;
+    linked_list_t  chat_ack_list;
 
     uint16_t       comment_seq;
     uint16_t       last_recv_ack;
+    uint16_t       last_recv_seq;
+    uint16_t       last_send_seq;
+    struct timeval last_send_time;
 
 } chat_data_t;
 
@@ -64,6 +67,6 @@ int              chat_add        (chat_data_t* chat_data, const char* comment);
 chat_node_t*     chat_get        (chat_data_t* chat_data);
 int              chat_ack        (chat_data_t* chat_data, uint16_t seq);
 int              chat_ack_add    (chat_data_t* chat_data, uint16_t ack_num);
-chat_ack_node_t* chat_ack_get    (chat_data_t* chat_data);
+int32_t          chat_ack_get    (chat_data_t* chat_data);
 
 #endif

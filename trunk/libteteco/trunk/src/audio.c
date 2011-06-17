@@ -131,6 +131,53 @@ int audio_end (audio_data_t* audio_data) {
 
 }
 
+int audio_check_play_device (PaDeviceIndex deviceIndex) {
+
+    PaStream            *stream;
+    PaStreamParameters  outputParameters;
+    PaError             err = paNoError;
+
+    outputParameters.device                    = deviceIndex;
+    outputParameters.channelCount              = 1;
+    outputParameters.sampleFormat              = paInt16;
+    outputParameters.suggestedLatency          = Pa_GetDeviceInfo (outputParameters.device )->defaultLowOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+
+    err = Pa_OpenStream (&stream, NULL, &outputParameters, 8000, 160, paClipOff, NULL, NULL);
+
+    if( err != paNoError ) {
+        return 0;
+    }
+    else {
+        err = Pa_CloseStream (stream);
+        return 1;
+    }
+}
+
+int audio_check_record_device (PaDeviceIndex deviceIndex) {
+
+    PaStream            *stream;
+    PaStreamParameters  inputParameters;
+    PaError             err = paNoError;
+
+    inputParameters.device                      = deviceIndex;
+    inputParameters.channelCount                = 1;
+    inputParameters.sampleFormat                = paInt16;
+    inputParameters.suggestedLatency            = Pa_GetDeviceInfo(deviceIndex)->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo   = NULL;
+
+    err = Pa_OpenStream (&stream, &inputParameters, NULL, 8000, 160, paClipOff, NULL, NULL);
+
+    if( err != paNoError ) {
+        return 0;
+    }
+    else {
+        err = Pa_CloseStream (stream);
+        return 1;
+    }
+
+}
+
 int audio_get_devices (audio_device_type_t in_out, int** index, char*** devices) {
 
     // Defalut device is always the first
@@ -198,7 +245,7 @@ int audio_get_devices (audio_device_type_t in_out, int** index, char*** devices)
 
         if (in_out == AUDIO_DEV_IN) {
 
-            if (deviceInfo->maxInputChannels > 0) {
+            if (deviceInfo->maxInputChannels > 0 && audio_check_record_device (i)) {
                 numSelectedDevices++;
                 devices_temp = util_realloc (devices_temp, numSelectedDevices*sizeof(char*));
                 if (devices_temp == NULL) {
@@ -221,7 +268,7 @@ int audio_get_devices (audio_device_type_t in_out, int** index, char*** devices)
             }
         }
         else if (in_out == AUDIO_DEV_OUT) {
-            if (deviceInfo->maxOutputChannels > 0) {
+            if (deviceInfo->maxOutputChannels > 0 && audio_check_play_device (i)) {
                 numSelectedDevices++;
                 devices_temp = util_realloc (devices_temp, numSelectedDevices*sizeof(char*));
                 if (devices_temp == NULL) {
@@ -441,7 +488,7 @@ static int audio_record_callback (const void                      *inputBuffer,
     int16_t       silence_buffer[framesPerBuffer];
 
     //TODO do constant
-    memset (silence_buffer, 0, framesPerBuffer);
+    //memset (silence_buffer, 0, framesPerBuffer);
 
 
     if (statusFlags & paInputUnderflow) {

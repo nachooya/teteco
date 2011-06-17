@@ -240,40 +240,38 @@ int enc_speex_stop (enc_speex_status_t* status) {
 
 }
 
-int enc_speex_encode (enc_speex_status_t* status, int16_t *frame, frame_list_t* frame_list) {
+int enc_speex_encode (enc_speex_status_t* status, int16_t *frame, int8_t* output) {
 
     uint8_t nbBytes = 0;
+    int     cursor  = 0;
 
     //log_print ("  encoding...  ");
 
     speex_preprocess_run (status->preprocess_state, frame);
 
-    speex_bits_reset(&status->bits);
+    speex_bits_reset (&status->bits);
     status->timestamp += status->frame_size;
+
+
     /*Encode the frame: if 0 no need to be transmitted*/
     if (speex_encode_int (status->state, frame, &status->bits) == 0) {
-        return 0;
+/*        memset (output+cursor, 0, sizeof(uint8_t));
+        cursor += sizeof (uint8_t);*/
     }
-
-    nbBytes = speex_bits_nbytes (&status->bits);
-
-    uint8_t cbits[nbBytes];
-
-    memset (cbits, 0, nbBytes);
-
-    /*Copy the bits to an array of char that can be written*/
-    nbBytes = speex_bits_write(&status->bits, (char*)cbits, nbBytes);
-    //TODO: avoid double copy
-    //log_print ("nbBytes: %d\n", nbBytes);
-    //circular_buffer_write (buffer_out, &status->frame_number, 1);
-    status->frame_number++;
-
-    frame_list_add_frame (frame_list, nbBytes, status->timestamp, cbits);
-    //log_print ("in %u [%u] bytes ", nbBytes, nbBytes+1+4);
-
-
-
-   return nbBytes;
+    else {
+        memcpy (output, &status->timestamp, sizeof(int));
+        cursor += sizeof (int);
+        nbBytes = speex_bits_nbytes (&status->bits);
+        //uint8_t cbits = [nbBytes];
+        memcpy ((char*)output+cursor, &nbBytes, sizeof(uint8_t));
+        cursor += sizeof (uint8_t);
+        /*Copy the bits to an array of char that can be written*/
+        nbBytes = speex_bits_write (&status->bits, (char*)output+cursor, nbBytes);
+        cursor += nbBytes;
+        status->frame_number++;
+        //frame_list_add_frame (frame_list, nbBytes, status->timestamp, cbits);
+    }
+    return cursor;
 }
 
 int enc_speex_decode (enc_speex_status_t* status, int16_t *frame) {
@@ -293,6 +291,7 @@ int enc_speex_put_sample (enc_speex_status_t* status, int8_t* samples, int sampl
         memcpy (&timestamp, &samples[cursor], 4);
         cursor+=4;
         memcpy (&size, &samples[cursor], 1);
+        //log_print ("[enc_speex]: Got frame size: %d timestamp: %d\n", size, timestamp);
         cursor+=1;
         int8_t sample[size];
         memcpy (&sample, &samples[cursor], size);

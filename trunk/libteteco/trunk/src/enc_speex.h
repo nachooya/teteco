@@ -61,7 +61,7 @@ typedef struct {
 
 enc_speex_status_t* enc_speex_start      (enc_speex_mode_t mode, enc_speex_band_t band_par, int quality);
 int                 enc_speex_stop       (enc_speex_status_t* status);
-int                 enc_speex_encode     (enc_speex_status_t* status, int16_t *frame, frame_list_t* frame_list);
+int                 enc_speex_encode     (enc_speex_status_t* status, int16_t *frame, int8_t* output);
 int                 enc_speex_put_sample (enc_speex_status_t* status, int8_t* samples, int samples_size);
 int                 enc_speex_decode     (enc_speex_status_t* status, int16_t *frame);
 
