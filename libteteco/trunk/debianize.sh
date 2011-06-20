@@ -7,7 +7,7 @@ set -x
 
 prefix="/usr"
 version="1"
-revision="2"
+revision="0"
 
 ARCH=`uname -r | awk -F "-" '{print $3}'`
 if [ "$ARCH" != "amd64" ]
