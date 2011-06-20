@@ -5,7 +5,7 @@
 
 prefix="/usr"
 version="1"
-revision="2"
+revision="0"
 
 ARCH=`uname -r | awk -F "-" '{print $3}'`
 if [ "$ARCH" != "amd64" ]
@@ -26,7 +26,7 @@ else
 fi
 
 echo "Package: teteco" > control
-echo "Depends: libteteco (>= 1.2), libqtcore4, libqtgui4, libqt4-svg, libqt4-xml, libqwt5-qt4, libpoppler-qt4-3" >> control
+echo "Depends: libteteco (>= 1.0), libqtcore4, libqtgui4, libqt4-svg, libqt4-xml, libqwt5-qt4, libpoppler-qt4-3" >> control
 echo "Version: $version.$revision" >> control
 echo "Section: base" >> control
 echo "Priority: optional" >> control
