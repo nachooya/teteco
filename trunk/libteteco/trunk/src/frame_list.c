@@ -121,7 +121,7 @@ uint8_t frame_list_get_frame (frame_list_t* frame_list, int16_t* output) {
 
     if (num_frames > 0 && !frame_list->frames[pos].dirty) {
 
-        memcpy (frame_list->frames[pos].payload, output, frame_list->frames[pos].size);
+        memcpy (output, frame_list->frames[pos].payload , frame_list->frames[pos].size*sizeof(int16_t));
         total_size = frame_list->frames[pos].size;
         frame_list->frames[pos].dirty = true;
 

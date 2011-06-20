@@ -269,6 +269,7 @@ int enc_speex_encode (enc_speex_status_t* status, int16_t *frame, int8_t* output
         nbBytes = speex_bits_write (&status->bits, (char*)output+cursor, nbBytes);
         cursor += nbBytes;
         status->frame_number++;
+        //log_print ("[speex] put frame size:%d", nbBytes);
         //frame_list_add_frame (frame_list, nbBytes, status->timestamp, cbits);
     }
     return cursor;
