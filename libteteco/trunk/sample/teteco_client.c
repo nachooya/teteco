@@ -9,6 +9,7 @@ int main (int argc, char *argv[]) {
 
     int*   devices_index = NULL;
     char** devices = NULL;
+    char*  message = "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890";
 
     int devices_num = teteco_get_out_devices (&devices_index, &devices);
 
@@ -30,8 +31,8 @@ int main (int argc, char *argv[]) {
 
 
     while (1) {
-        sleep (2);
-        teteco_chat_send (teteco, "hola");
+        sleep (5);
+        teteco_chat_send (teteco, message);
     }
 
     return 0;
