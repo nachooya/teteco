@@ -489,6 +489,7 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
         teteco->pending_file_ack = 0;
         teteco->pending_control_ack = 0;
         teteco->frames_per_pdu   = 3;
+        teteco->frame_list       = NULL;
 
 #ifdef __LINUX__
         teteco->thread_main      = 0;
