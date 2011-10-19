@@ -51,7 +51,14 @@
 * PRIVATE *
 ***********/
 
-struct event_base *event_base;
+struct event_base *event_base = NULL;
+
+void libevent_log_callback (int severity, const char* data) {
+
+	fprintf (stderr, "[libevent][%d]: %s\n", severity, data);
+	log_print ("[libevent][%d]: %s", severity, data);
+
+}
 
 void log_callback_default (char* entry) {
 
@@ -219,14 +226,14 @@ void* teteco_main_thread (void* data) {
         return NULL;
     }
 
-    log_print ("[main]: Main thread started");
+    log_print ("[teteco]: Main thread started");
 
     //teteco_t *teteco = (teteco_t*) data;
 
     switch (event_base_dispatch (event_base)) {
 
         case -1:
-            log_print ("[teteco]: Error on event_base_loop");
+            log_print ("[teteco]: Error on event_base_loop: event_base is: %p", event_base);
             break;
         case 0:
             log_print ("[teteco]: Main thread stoped");
@@ -413,14 +420,17 @@ int teteco_init () {
     }
 #endif
 
-    //evthread_use_pthreads ();
+    evthread_use_pthreads ();
+	event_enable_debug_mode ();
+	event_set_log_callback (&libevent_log_callback);
 
     PaError error = Pa_Initialize();
 
     if (error == paNoError) {
         log_print ("[teteco]: PortAudio version= %s - %d", Pa_GetVersionText(), Pa_GetVersion());
         event_base = event_base_new ();
-        return 1;
+		log_print ("[teteco]: Event base is %p", event_base);
+		return 1;
     }
     else {
         log_print ("[teteco]: Error initializing PortAudio: %s", Pa_GetErrorText (error));
@@ -430,6 +440,7 @@ int teteco_init () {
 
 int teteco_end (void) {
 
+	log_print ("[teteco]: teteco_end");
 #ifdef __WINDOWS__
     WSACleanup();
     pthread_win32_process_detach_np();
@@ -440,10 +451,11 @@ int teteco_end (void) {
     if (error == paNoError) {
         log_print ("[teteco]: Stopped");
         event_base_free (event_base);
+		event_base = NULL;
         return 1;
     }
     else {
-        log_print ("[audio]: Error finishing PortAudio: %s", Pa_GetErrorText (error));
+        log_print ("[teteco]: Error finishing PortAudio: %s", Pa_GetErrorText (error));
         return -1;
     }
 }
@@ -521,7 +533,9 @@ teteco_t* teteco_start        (teteco_net_mode_t    client_or_server,
                                    (enc_speex_band==TETECO_SPEEX_WB)?ENC_SPEEX_WB:
                                    (enc_speex_band==TETECO_SPEEX_UWB)?ENC_SPEEX_UWB:0;
 
-        event_base = event_base_new ();
+        //event_base = event_base_new ();
+		//log_print ("[teteco]: Event base is %p", event_base);
+        
 
         if (!teteco_net_start (teteco, local_port, remote_port, remote_address)) {
             log_print ("[teteco]: Error iniating network");
@@ -613,10 +627,10 @@ teteco_t* teteco_stop (teteco_t* teteco) {
 int teteco_udp_send_ready (teteco_t* teteco) {
 
     if (teteco->udp_send_event == NULL) {
-        log_print ("[teteco_net]: This shouldn't happen two times");
+        log_print ("[teteco]: This shouldn't happen two times");
         teteco->udp_send_event = event_new (event_base, frame_list_get_read_pipe_fd (teteco->frame_list), EV_READ |EV_PERSIST, teteco_udp_send_callback, teteco);
         if (0 != event_add (teteco->udp_send_event, NULL)) {
-            log_print ("[teteco_net]: Error adding event");
+            log_print ("[teteco]: Error adding event");
             return 0;
         }
     }

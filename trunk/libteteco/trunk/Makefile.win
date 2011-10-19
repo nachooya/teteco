@@ -15,7 +15,7 @@ CC=gcc
 SOURCES=src/teteco_net.c \
         src/audio.c \
         src/enc_speex.c \
-        src/circular_buffer.c \
+        src/frame_list.c \
         src/util.c \
         src/speex_jitter_buffer.c \
         src/protocol.c \

@@ -53,10 +53,10 @@ void log_print (char* fmt, ...) {
 
     if (log_callback != NULL) {
         (log_callback) (entry);
-    }
-    else {
+	}
+    //else {
         fprintf (stderr, "LOG: %s\n", entry);
-    }
+    //}
     #ifdef __WINDOWS__
     fflush (stderr);
     fflush (stdout);
