@@ -400,6 +400,7 @@ void Interface::SetStatus (int status) {
         statisticsTimer.start();
         audioLevelTimer.start();
         netLevelTimer.start();
+		textEdit_Chat->append (QString("<font color='green'>== Session started ==</font>"));
 
         if (buttonServer->isChecked())
             setServerConnected();
@@ -408,6 +409,7 @@ void Interface::SetStatus (int status) {
 
     }
     else {
+	    progressBar_Audio   ->setValue (0);
         textEdit_ChatInput  ->setEnabled (false);
         pushButton_ChatSend ->setEnabled (false);
         actionSendFile      ->setEnabled (false);
@@ -425,6 +427,7 @@ void Interface::SetStatus (int status) {
         }
         else {
             emit Disconnected (true);
+			textEdit_Chat->append (QString("<font color='green'>== Session stopped ==</font>"));
             if (teteco != NULL) teteco = teteco_stop (teteco);
             connected = false;
             statisticsTimer.stop();
